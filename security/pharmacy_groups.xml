@@ -1,0 +1,28 @@
+<odoo>
+    <data>
+
+        <!-- Cashier -->
+        <record id="group_pharmacy_cashier" model="res.groups">
+            <field name="name">Cashier</field>
+            <field name="category_id" ref="base.module_category_inventory_inventory"/>
+            <field name="comment">Can sell products at POS. Cannot see or modify scheduled medicine fields.</field>
+        </record>
+
+        <!--  Pharmacist Cashier -->
+        <record id="group_pharmacy_pharmacist" model="res.groups">
+            <field name="name">Pharmacist</field>
+            <field name="category_id" ref="base.module_category_inventory_inventory"/>
+            <field name="implied_ids" eval="[(4, ref('group_pharmacy_cashier'))]"/>
+            <field name="comment">Can manage scheduled medicines and view cost prices.</field>
+        </record>
+
+        <!--  Pharmacy Manager -->
+        <record id="group_pharmacy_manager" model="res.groups">
+            <field name="name">Pharmacy Manager</field>
+            <field name="category_id" ref="base.module_category_inventory_inventory"/>
+            <field name="implied_ids" eval="[(4, ref('group_pharmacy_pharmacist'))]"/>
+            <field name="comment">Full access to all pharmacy features including scheduled medicines and reports.</field>
+        </record>
+
+    </data>
+</odoo>

@@ -1,0 +1,10 @@
+<odoo>
+    <data noupdate="1">
+        <!-- Ensure the Buy route is enabled for products by default if possible -->
+        <!-- This is a helper to ensure products have a route if they are missing one -->
+        <function model="product.template" name="write">
+            <value model="product.template" eval="obj().search([('type', '=', 'product'), ('route_ids', '=', False)]).ids"/>
+            <value eval="{'route_ids': [(4, ref('purchase_stock.route_warehouse0_buy', raise_if_not_found=False))]}"/>
+        </function>
+    </data>
+</odoo>

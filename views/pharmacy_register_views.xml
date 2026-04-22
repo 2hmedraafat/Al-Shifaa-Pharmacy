@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Search View -->
+    <record id="pharmacy_register_search_view" model="ir.ui.view">
+        <field name="name">pharmacy.controlled.register.search</field>
+        <field name="model">pharmacy.controlled.register</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name" string="Reference"/>
+                <field name="patient_name"/>
+                <field name="patient_id_number"/>
+                <field name="product_id"/>
+                <field name="rx_reference"/>
+                <filter name="schedule_1" string="Schedule I"
+                        domain="[('schedule_level','=','1')]"/>
+                <filter name="schedule_2" string="Schedule II"
+                        domain="[('schedule_level','=','2')]"/>
+                <filter name="schedule_3" string="Schedule III"
+                        domain="[('schedule_level','=','3')]"/>
+                <filter name="today" string="Today"
+                        domain="[('date','&gt;=', datetime.datetime.now().strftime('%Y-%m-%d 00:00:00'))]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_product" string="Medicine"
+                            context="{'group_by': 'product_id'}"/>
+                    <filter name="group_schedule" string="Schedule Level"
+                            context="{'group_by': 'schedule_level'}"/>
+                    <filter name="group_pharmacist" string="Pharmacist"
+                            context="{'group_by': 'pharmacist_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Form View — Read Only -->
+    <record id="pharmacy_register_form_view" model="ir.ui.view">
+        <field name="name">pharmacy.controlled.register.form</field>
+        <field name="model">pharmacy.controlled.register</field>
+        <field name="arch" type="xml">
+            <form string="Controlled Substance Entry" create="false" edit="false" delete="false">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Patient Information">
+                            <field name="patient_name" readonly="1"/>
+                            <field name="patient_id_number" readonly="1"/>
+                            <field name="date" readonly="1"/>
+                        </group>
+                        <group string="Medicine Information">
+                            <field name="product_id" readonly="1"/>
+                            <field name="schedule_level" readonly="1"
+                                   widget="badge"/>
+                            <field name="lot_number" readonly="1"/>
+                            <field name="qty_dispensed" readonly="1"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Dispensing Information">
+                            <field name="pharmacist_id" readonly="1"/>
+                            <field name="rx_id" readonly="1"/>
+                            <field name="rx_reference" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="Notes">
+                        <field name="notes" readonly="1" nolabel="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- List View — Read Only -->
+    <record id="pharmacy_register_list_view" model="ir.ui.view">
+        <field name="name">pharmacy.controlled.register.list</field>
+        <field name="model">pharmacy.controlled.register</field>
+        <field name="arch" type="xml">
+            <list string="Controlled Substances Register"
+                  create="false" edit="false" delete="false"
+                  decoration-danger="schedule_level in ('1','2')"
+                  decoration-warning="schedule_level in ('3','4','5')">
+                <field name="name"/>
+                <field name="date"/>
+                <field name="patient_name"/>
+                <field name="patient_id_number"/>
+                <field name="product_id"/>
+                <field name="schedule_level" widget="badge"/>
+                <field name="lot_number"/>
+                <field name="qty_dispensed"/>
+                <field name="pharmacist_id"/>
+                <field name="rx_reference"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_pharmacy_register" model="ir.actions.act_window">
+        <field name="name">Controlled Substances Register</field>
+        <field name="res_model">pharmacy.controlled.register</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Menu -->
+    <menuitem id="menu_pharmacy_compliance"
+              name="Compliance"
+              parent="menu_pharmacy_root"
+              sequence="30"/>
+
+    <menuitem id="menu_pharmacy_register"
+              name="Controlled Substances Register"
+              parent="menu_pharmacy_compliance"
+              action="action_pharmacy_register"
+              sequence="10"/>
+
+</odoo>

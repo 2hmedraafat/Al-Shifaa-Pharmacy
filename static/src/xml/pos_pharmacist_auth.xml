@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pharmacy.PharmacistAuthDialog">
+        <Dialog title.translate="Pharmacist Authentication Required">
+            <div class="p-3 text-center">
+                <p class="fw-bold mb-2">⚠️ Scheduled Medicine Detected!</p>
+                <p class="text-muted">
+                    This product requires pharmacist authorization before dispensing.
+                </p>
+            </div>
+            <t t-set-slot="footer">
+                <button class="btn btn-primary btn-lg lh-lg" t-on-click="confirm">
+                    Confirm
+                </button>
+                <button class="btn btn-secondary btn-lg lh-lg" t-on-click="cancel">
+                    Cancel
+                </button>
+            </t>
+        </Dialog>
+    </t>
+</templates>

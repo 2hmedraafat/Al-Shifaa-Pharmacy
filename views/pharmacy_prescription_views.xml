@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Search View -->
+    <record id="pharmacy_prescription_search_view" model="ir.ui.view">
+        <field name="name">pharmacy.prescription.search</field>
+        <field name="model">pharmacy.prescription</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name" string="Rx Reference"/>
+                <field name="patient_name"/>
+                <field name="patient_id"/>
+                <field name="product_id"/>
+                <filter name="open" string="Open"
+                        domain="[('state','=','open')]"/>
+                <filter name="partial" string="Partial"
+                        domain="[('state','=','partial')]"/>
+                <filter name="done" string="Done"
+                        domain="[('state','=','done')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_product" string="Medicine"
+                            context="{'group_by': 'product_id'}"/>
+                    <filter name="group_state" string="Status"
+                            context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Form View -->
+    <record id="pharmacy_prescription_form_view" model="ir.ui.view">
+        <field name="name">pharmacy.prescription.form</field>
+        <field name="model">pharmacy.prescription</field>
+        <field name="arch" type="xml">
+            <form string="Prescription">
+                <header>
+                    <button name="action_dispense_one"
+                            string="Dispense 1"
+                            type="object"
+                            class="btn btn-primary"
+                            invisible="state in ('done','cancelled')"/>
+
+                    <button name="action_dispense_all"
+                            string="Dispense All"
+                            type="object"
+                            class="btn btn-secondary"
+                            invisible="state in ('done','cancelled')"/>
+
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="open,partial,done"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Patient Information">
+                            <field name="patient_name"/>
+                            <field name="patient_id"/>
+                            <field name="doctor_name"/>
+                            <field name="date"/>
+                        </group>
+                        <group string="Medicine Information">
+                            <field name="product_id"/>
+                            <field name="schedule_level"/>
+                            <field name="qty_prescribed"/>
+                            <field name="qty_dispensed" readonly="1"/>
+                            <field name="qty_remaining" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="Notes">
+                        <field name="notes" nolabel="1"/>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- List View -->
+    <record id="pharmacy_prescription_list_view" model="ir.ui.view">
+        <field name="name">pharmacy.prescription.list</field>
+        <field name="model">pharmacy.prescription</field>
+        <field name="arch" type="xml">
+            <list string="Prescriptions"
+                  decoration-success="state == 'done'"
+                  decoration-warning="state == 'partial'"
+                  decoration-info="state == 'open'">
+                <field name="name"/>
+                <field name="date"/>
+                <field name="patient_name"/>
+                <field name="patient_id"/>
+                <field name="product_id"/>
+                <field name="schedule_level" widget="badge"/>
+                <field name="qty_prescribed"/>
+                <field name="qty_dispensed"/>
+                <field name="qty_remaining"/>
+                <field name="state" widget="badge"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Actions -->
+    <record id="action_pharmacy_medicines" model="ir.actions.act_window">
+        <field name="name">Medicines</field>
+        <field name="res_model">product.template</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="action_pharmacy_prescription" model="ir.actions.act_window">
+        <field name="name">Prescriptions</field>
+        <field name="res_model">pharmacy.prescription</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Menus -->
+    <menuitem id="menu_pharmacy_root"
+              name="Pharmacy"
+              sequence="100"/>
+
+    <menuitem id="menu_pharmacy_medicines"
+              name="Medicines"
+              parent="menu_pharmacy_root"
+              action="action_pharmacy_medicines"
+              sequence="10"/>
+
+    <menuitem id="menu_pharmacy_prescriptions"
+              name="Prescriptions"
+              parent="menu_pharmacy_root"
+              action="action_pharmacy_prescription"
+              sequence="20"/>
+
+    <menuitem id="menu_pharmacy_compliance"
+              name="Compliance"
+              parent="menu_pharmacy_root"
+              sequence="30"/>
+
+</odoo>

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Form View -->
+    <record id="pharmacy_product_form_view" model="ir.ui.view">
+        <field name="name">product.template.pharmacy.barcode</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_only_form_view"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//field[@name='type']" position="before">
+                <!-- Pharmacist/Manager: يشوف ويغير -->
+                <field name="is_scheduled_medicine"
+                       string="Medicine is Scheduled"
+                       groups="pharmacy.group_pharmacy_pharmacist"/>
+                <field name="schedule_level"
+                       invisible="not is_scheduled_medicine"
+                       groups="pharmacy.group_pharmacy_pharmacist"/>
+
+                <!-- Cashier: يشوف بس readonly -->
+                <field name="is_scheduled_medicine"
+                       string="Medicine is Scheduled"
+                       readonly="1"
+                       groups="pharmacy.group_pharmacy_cashier"
+                       invisible="not is_scheduled_medicine"/>
+            </xpath>
+
+            <!-- Barcode + Generate -->
+            <xpath expr="//field[@name='barcode']" position="replace">
+                <label for="barcode" string="Barcode"/>
+                <div>
+                    <field name="barcode"
+                           class="oe_inline"
+                           placeholder="1001"/>
+                </div>
+                <div style="margin-top:4px;">
+                    <button name="action_generate_barcode"
+                            string="Generate"
+                            type="object"
+                            class="btn btn-secondary btn-sm"
+                            confirm="This will replace the existing barcode. Are you sure?"/>
+                </div>
+            </xpath>
+
+        </field>
+    </record>
+
+    <!-- List View — Badge -->
+    <record id="pharmacy_product_list_view" model="ir.ui.view">
+        <field name="name">product.template.pharmacy.list</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_tree_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list" position="inside">
+                <field name="is_scheduled_medicine" column_invisible="1"/>
+                <field name="schedule_level"
+                       string="Schedule"
+                       optional="show"
+                       decoration-danger="is_scheduled_medicine"
+                       widget="badge"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

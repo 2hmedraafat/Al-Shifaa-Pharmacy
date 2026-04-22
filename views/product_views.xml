@@ -1,0 +1,25 @@
+<odoo>
+    <record id="view_product_form_pharmacy" model="ir.ui.view">
+        <field name="name">product.template.form.pharmacy</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_only_form_view"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//page[@name='general_information']//group[@name='group_standard_price']" position="after">
+
+                <group string="Selling Configuration">
+                    <field name="sell_as" widget="radio" options="{'horizontal': true}"/>
+                    <field name="units_per_package"
+                           invisible="sell_as != 'unit'"
+                           required="sell_as == 'unit'"/>
+                    <field name="display_stock" readonly="1"/>
+                <field name="commission_pct" string="Commission %"/>
+                </group>
+
+                <field name="route_ids" widget="many2many_tags" groups="stock.group_adv_location"/>
+
+            </xpath>
+
+        </field>
+    </record>
+</odoo>

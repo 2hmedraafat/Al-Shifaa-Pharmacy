@@ -1,0 +1,26 @@
+<templates>
+
+    <t t-name="pharmacy.BarcodeNotFoundDialog">
+        <Dialog title="'Barcode Not Found'">
+            <div class="p-3">
+                <p class="mb-3">
+                    Barcode <strong t-esc="props.barcode"/> was not found in the system.
+                </p>
+                <p class="text-muted mb-4">What would you like to do?</p>
+
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary" t-on-click="onCreateNew">
+                        Create New Product
+                    </button>
+                    <button class="btn btn-secondary" t-on-click="onLinkExisting">
+                        Link to Existing Product
+                    </button>
+                    <button class="btn btn-outline-secondary" t-on-click="onCancel">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </Dialog>
+    </t>
+
+</templates>
