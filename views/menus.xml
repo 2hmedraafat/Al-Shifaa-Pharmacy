@@ -20,16 +20,4 @@
               parent="menu_pharmacy_root"
               sequence="40"/>
 
-    <menuitem id="menu_pharmacy_low_stock_override_log"
-              name="Low Stock Override Log"
-              parent="menu_pharmacy_reports"
-              action="action_pharmacy_low_stock_override_log"
-              sequence="10"/>
-
-    <menuitem id="menu_pharmacy_invoice_block_log"
-              name="Invoice Block Log (UC-10)"
-              parent="menu_pharmacy_reports"
-              action="action_pharmacy_invoice_block_log"
-              sequence="20"/>
-
 </odoo>

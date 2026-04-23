@@ -63,7 +63,7 @@
                 <field name="classification" widget="radio" options="{'horizontal': true}"/>
             </xpath>
 
-            <!-- Sales Price: نستبدل البلوك كله -->
+            <!-- Sales Price -->
             <xpath expr="//label[@for='list_price']" position="replace">
                 <label for="list_price" string="Sales Price"/>
             </xpath>

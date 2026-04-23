@@ -12,13 +12,14 @@
         'data/uom_data.xml',
         'data/stock_data.xml',
 
-        'views/menus.xml',
         'views/product_template_views.xml',
         'views/pharmacy_prescription_views.xml',
         'views/pharmacy_register_views.xml',
         'views/product_views.xml',
         'views/sale_views.xml',
         'views/product_search_views.xml',
+
+        'views/menus.xml',  
 
         'report/product_classification_report.xml',
         'report/product_classification_report_template.xml',
