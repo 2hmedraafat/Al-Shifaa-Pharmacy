@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="product_template_search_pharmacy" model="ir.ui.view">
+        <field name="name">product.template.search.pharmacy</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_search_view"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//search" position="inside">
+                <separator/>
+                <filter string="Medicines" name="filter_medicine"
+                        domain="[('classification', '=', 'medicine')]"/>
+                <filter string="Non-Medicines" name="filter_non_medicine"
+                        domain="[('classification', '=', 'non_medicine')]"/>
+                <filter string="Scheduled Drugs" name="filter_scheduled"
+                        domain="[('classification', '=', 'medicine'), ('is_scheduled', '=', True)]"/>
+                <filter string="Chronic Medications" name="filter_chronic"
+                        domain="[('classification', '=', 'medicine'), ('is_chronic', '=', True)]"/>
+                <filter string="Low Stock" name="filter_low_stock"
+                        domain="[('is_low_stock', '=', True)]"
+                        help="Show only medicines currently at or below their Low Stock Limit"/>
+
+                <separator/>
+                <filter string="Group by Classification" name="group_by_classification"
+                        context="{'group_by': 'classification'}"/>
+                <filter string="Group by Low Stock" name="group_by_low_stock"
+                        context="{'group_by': 'is_low_stock'}"/>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

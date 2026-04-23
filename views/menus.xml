@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <menuitem id="menu_pharmacy_root"
+              name="Pharmacy"
+              sequence="100"/>
+
+    <menuitem id="menu_pharmacy_prescriptions_root"
+              name="Operations"
+              parent="menu_pharmacy_root"
+              sequence="5"/>
+
+    <menuitem id="menu_pharmacy_compliance"
+              name="Compliance"
+              parent="menu_pharmacy_root"
+              sequence="30"/>
+
+    <menuitem id="menu_pharmacy_reports"
+              name="Reports"
+              parent="menu_pharmacy_root"
+              sequence="40"/>
+
+    <menuitem id="menu_pharmacy_low_stock_override_log"
+              name="Low Stock Override Log"
+              parent="menu_pharmacy_reports"
+              action="action_pharmacy_low_stock_override_log"
+              sequence="10"/>
+
+    <menuitem id="menu_pharmacy_invoice_block_log"
+              name="Invoice Block Log (UC-10)"
+              parent="menu_pharmacy_reports"
+              action="action_pharmacy_invoice_block_log"
+              sequence="20"/>
+
+</odoo>

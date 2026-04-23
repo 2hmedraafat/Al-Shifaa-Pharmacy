@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+   
+    <template id="report_product_classification">
+        <t t-call="web.html_container">
+            <t t-call="web.external_layout">
+                <div class="page">
+                    <h2 class="text-center">Pharmacy Inventory — Classification Report</h2>
+                    <p class="text-muted text-center">
+                        Generated on: <t t-esc="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d %H:%M')"/>
+                    </p>
+
+                    <h4 class="mt-4" style="color: #d9534f;">
+                        <i class="fa fa-medkit"/> Medicines
+                    </h4>
+                    <table class="table table-sm table-bordered o_main_table">
+                        <thead class="table-danger">
+                            <tr>
+                                <th>Product Name</th>
+                                <th>Category</th>
+                                <th>Scheduled</th>
+                                <th>Chronic</th>
+                                <th>Max Qty</th>
+                                <th>Low Stock Limit</th>
+                                <th>Lot Tracking</th>
+                                <th>Expiry Tracking</th>
+                                <th>Qty On Hand</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="docs.filtered(lambda p: p.classification == 'medicine')" t-as="product">
+                                <tr>
+                                    <td><t t-esc="product.name"/></td>
+                                    <td><t t-esc="product.categ_id.name"/></td>
+                                    <td>
+                                        <span t-if="product.is_scheduled" class="badge text-bg-danger">Yes</span>
+                                        <span t-else="" class="badge text-bg-secondary">No</span>
+                                    </td>
+                                    <td>
+                                        <span t-if="product.is_chronic" class="badge text-bg-warning">Yes</span>
+                                        <span t-else="" class="badge text-bg-secondary">No</span>
+                                    </td>
+                                    <td><t t-esc="product.max_qty or '—'"/></td>
+                                    <td><t t-esc="product.low_stock_limit or '—'"/></td>
+                                    <td>
+                                        <span t-if="product.lot_tracking_required" class="badge text-bg-info">Yes</span>
+                                        <span t-else="" class="badge text-bg-secondary">No</span>
+                                    </td>
+                                    <td>
+                                        <span t-if="product.expiry_tracking_required" class="badge text-bg-info">Yes</span>
+                                        <span t-else="" class="badge text-bg-secondary">No</span>
+                                    </td>
+                                    <td><t t-esc="product.qty_available"/></td>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+
+                    <h4 class="mt-4" style="color: #5cb85c;">
+                        <i class="fa fa-shopping-bag"/> Non-Medicines 
+                    </h4>
+                    <table class="table table-sm table-bordered o_main_table">
+                        <thead class="table-success">
+                            <tr>
+                                <th>Product Name</th>
+                                <th>Category</th>
+                                <th>Qty On Hand</th>
+                                <th>Forecasted Qty</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="docs.filtered(lambda p: p.classification == 'non_medicine')" t-as="product">
+                                <tr>
+                                    <td><t t-esc="product.name"/></td>
+                                    <td><t t-esc="product.categ_id.name"/></td>
+                                    <td><t t-esc="product.qty_available"/></td>
+                                    <td><t t-esc="product.virtual_available"/></td>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+
+                    <div class="row mt-4">
+                        <div class="col-6">
+                            <div class="alert alert-danger">
+                                <strong>Total Medicines:</strong>
+                                <t t-esc="len(docs.filtered(lambda p: p.classification == 'medicine'))"/>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="alert alert-success">
+                                <strong>Total Non-Medicines:</strong>
+                                <t t-esc="len(docs.filtered(lambda p: p.classification == 'non_medicine'))"/>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </t>
+        </t>
+    </template>
+
+</odoo>

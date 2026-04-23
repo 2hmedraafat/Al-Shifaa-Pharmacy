@@ -12,21 +12,13 @@
                 <field name="patient_id_number"/>
                 <field name="product_id"/>
                 <field name="rx_reference"/>
-                <filter name="schedule_1" string="Schedule I"
-                        domain="[('schedule_level','=','1')]"/>
-                <filter name="schedule_2" string="Schedule II"
-                        domain="[('schedule_level','=','2')]"/>
-                <filter name="schedule_3" string="Schedule III"
-                        domain="[('schedule_level','=','3')]"/>
-                <filter name="today" string="Today"
-                        domain="[('date','&gt;=', datetime.datetime.now().strftime('%Y-%m-%d 00:00:00'))]"/>
+                <filter name="schedule_1" string="Schedule I" domain="[('schedule_level','=','1')]"/>
+                <filter name="schedule_2" string="Schedule II" domain="[('schedule_level','=','2')]"/>
+                <filter name="schedule_3" string="Schedule III" domain="[('schedule_level','=','3')]"/>
                 <group expand="0" string="Group By">
-                    <filter name="group_product" string="Medicine"
-                            context="{'group_by': 'product_id'}"/>
-                    <filter name="group_schedule" string="Schedule Level"
-                            context="{'group_by': 'schedule_level'}"/>
-                    <filter name="group_pharmacist" string="Pharmacist"
-                            context="{'group_by': 'pharmacist_id'}"/>
+                    <filter name="group_product" string="Medicine" context="{'group_by': 'product_id'}"/>
+                    <filter name="group_schedule" string="Schedule Level" context="{'group_by': 'schedule_level'}"/>
+                    <filter name="group_pharmacist" string="Pharmacist" context="{'group_by': 'pharmacist_id'}"/>
                 </group>
             </search>
         </field>
@@ -52,8 +44,7 @@
                         </group>
                         <group string="Medicine Information">
                             <field name="product_id" readonly="1"/>
-                            <field name="schedule_level" readonly="1"
-                                   widget="badge"/>
+                            <field name="schedule_level" readonly="1" widget="badge"/>
                             <field name="lot_number" readonly="1"/>
                             <field name="qty_dispensed" readonly="1"/>
                         </group>
@@ -104,11 +95,6 @@
     </record>
 
     <!-- Menu -->
-    <menuitem id="menu_pharmacy_compliance"
-              name="Compliance"
-              parent="menu_pharmacy_root"
-              sequence="30"/>
-
     <menuitem id="menu_pharmacy_register"
               name="Controlled Substances Register"
               parent="menu_pharmacy_compliance"

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <report
+        id="action_report_product_classification"
+        name="pharmacy.report_product_classification"
+        model="product.template"
+        report_type="qweb-pdf"
+        string="Inventory by Classification"
+        print_report_name="'Inventory Classification Report'"
+        menu="True"
+    />
+
+    <record id="action_product_classification_report" model="ir.actions.act_window">
+        <field name="name">Products by Classification</field>
+        <field name="res_model">product.template</field>
+        <field name="view_mode">list,kanban,pivot,graph</field>
+        <field name="context">{'search_default_group_by_classification': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No products found. Add products and classify them as Medicine or Non-Medicine.
+            </p>
+        </field>
+    </record>
+
+    <record id="product_template_pivot_classification" model="ir.ui.view">
+        <field name="name">product.template.pivot.classification</field>
+        <field name="model">product.template</field>
+        <field name="arch" type="xml">
+            <pivot string="Inventory by Classification" disable_linking="True">
+                <field name="classification" type="row"/>
+                <field name="categ_id" type="row"/>
+                <field name="qty_available" type="measure"/>
+                <field name="virtual_available" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="product_template_graph_classification" model="ir.ui.view">
+        <field name="name">product.template.graph.classification</field>
+        <field name="model">product.template</field>
+        <field name="arch" type="xml">
+            <graph string="Inventory by Classification" type="bar" stacked="True">
+                <field name="classification" type="row"/>
+                <field name="qty_available" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+</odoo>
