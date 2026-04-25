@@ -18,3 +18,4 @@ access_pharmacy_invoice_block_log_manager,pharmacy.invoice.block.log.manager,mod
 access_pharmacy_low_stock_override_log_cashier,pharmacy.low.stock.override.log.cashier,model_pharmacy_low_stock_override_log,pharmacy.group_pharmacy_cashier,1,0,0,0
 access_pharmacy_low_stock_override_log_pharmacist,pharmacy.low.stock.override.log.pharmacist,model_pharmacy_low_stock_override_log,pharmacy.group_pharmacy_pharmacist,1,0,0,0
 access_pharmacy_low_stock_override_log_manager,pharmacy.low.stock.override.log.manager,model_pharmacy_low_stock_override_log,pharmacy.group_pharmacy_manager,1,1,1,1
+access_pharmacy_commission_report_user,pharmacy.commission.report.user,model_pharmacy_commission_report,base.group_user,1,0,0,0

@@ -6,3 +6,5 @@ from . import pos_session
 from . import sale    # &sale_order_line.py
 from . import purchase
 from . import stock_move
+from . import commission_report
+

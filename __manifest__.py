@@ -19,6 +19,7 @@
         'views/sale_views.xml',
         'views/product_search_views.xml',
         'views/purchase_order_views.xml',
+        'views/commission_report_views.xml',
 
         'views/menus.xml',
 
