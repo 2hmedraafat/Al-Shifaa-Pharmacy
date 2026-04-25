@@ -8,6 +8,8 @@
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='order_line']//list//field[@name='product_uom']" position="attributes">
                     <attribute name="options">{'no_create': True, 'no_create_edit': True, 'no_open': True}</attribute>
+                    <!-- readonly so user can't change it manually; Python onchange/constrains enforce Package -->
+                    <attribute name="readonly">1</attribute>
                 </xpath>
             </field>
         </record>

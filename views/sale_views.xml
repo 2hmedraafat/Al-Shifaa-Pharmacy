@@ -15,6 +15,19 @@
                        optional="show"/>
             </xpath>
 
+            <!-- UC-SELL: inject allowed_uom_ids as invisible so domain works for all groups -->
+            <xpath expr="//field[@name='order_line']/list//field[@name='product_uom']"
+                   position="before">
+                <field name="allowed_uom_ids" column_invisible="1"/>
+            </xpath>
+
+            <!-- UC-SELL: Restrict UoM choices based on product sell_as -->
+            <xpath expr="//field[@name='order_line']/list//field[@name='product_uom']"
+                   position="attributes">
+                <attribute name="options">{'no_create': True, 'no_create_edit': True, 'no_open': True}</attribute>
+                <attribute name="domain">[('id', 'in', allowed_uom_ids)]</attribute>
+            </xpath>
+
         </field>
     </record>
 

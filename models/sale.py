@@ -29,6 +29,26 @@ class SaleOrderLine(models.Model):
         help='UC-11: True if cashier saved a qty exceeding max_qty_when_low while stock was low.',
     )
 
+    # ── UC-SELL — Allowed UoMs based on sell_as ──────────────────────────
+    allowed_uom_ids = fields.Many2many(
+        'uom.uom',
+        compute='_compute_allowed_uom_ids',
+        string='Allowed UoMs',
+    )
+
+    @api.depends('product_id', 'product_id.sell_as')
+    def _compute_allowed_uom_ids(self):
+        package_uom = self.env.ref('pharmacy.product_uom_package', raise_if_not_found=False)
+        unit_uom = self.env.ref('pharmacy.product_uom_unit', raise_if_not_found=False)
+        for line in self:
+            if not package_uom:
+                line.allowed_uom_ids = self.env['uom.uom']
+                continue
+            if line.product_id and line.product_id.sell_as == 'unit' and unit_uom:
+                line.allowed_uom_ids = package_uom | unit_uom
+            else:
+                line.allowed_uom_ids = package_uom
+
     @api.depends('product_id', 'product_uom_qty', 'price_unit', 'product_id.commission_pct')
     def _compute_commission_amount(self):
         for line in self:
@@ -40,25 +60,63 @@ class SaleOrderLine(models.Model):
 
     @api.onchange('product_id')
     def _onchange_set_default_unit_uom(self):
+        package_uom = self.env.ref('pharmacy.product_uom_package', raise_if_not_found=False)
+        unit_uom = self.env.ref('pharmacy.product_uom_unit', raise_if_not_found=False)
         for line in self:
             product = line.product_id.product_tmpl_id
-            if product.sell_as == 'unit' and product.uom_id:
-                line.product_uom = product.uom_id
+            if not product or not package_uom:
+                continue
+            if product.sell_as == 'unit' and unit_uom:
+                line.product_uom = unit_uom
                 line.price_unit = product.unit_price
+            else:
+                line.product_uom = package_uom
 
     @api.onchange('product_uom')
     def _onchange_set_price_by_uom(self):
+        package_uom = self.env.ref('pharmacy.product_uom_package', raise_if_not_found=False)
+        unit_uom = self.env.ref('pharmacy.product_uom_unit', raise_if_not_found=False)
         for line in self:
             product = line.product_id.product_tmpl_id
             if not product or product.sell_as != 'unit':
                 continue
+
+            # revert if invalid UoM selected
+            allowed = [package_uom.id] if package_uom else []
+            if unit_uom:
+                allowed.append(unit_uom.id)
+            if line.product_uom and line.product_uom.id not in allowed:
+                line.product_uom = package_uom
+                return {
+                    'warning': {
+                        'title': _('Invalid Unit of Measure'),
+                        'message': _('This UoM is not allowed for this product. Reverted to Package.'),
+                    }
+                }
+
             if not product.package_uom_id:
                 continue
-
             if line.product_uom == product.package_uom_id:
                 line.price_unit = product.list_price
             elif line.product_uom == product.uom_id:
                 line.price_unit = product.unit_price
+
+    @api.constrains('product_uom', 'product_id')
+    def _check_sale_uom_allowed(self):
+        package_uom = self.env.ref('pharmacy.product_uom_package', raise_if_not_found=False)
+        unit_uom = self.env.ref('pharmacy.product_uom_unit', raise_if_not_found=False)
+        for line in self:
+            if not line.product_id or not line.product_uom or not package_uom:
+                continue
+            tmpl = line.product_id.product_tmpl_id
+            if tmpl.sell_as == 'unit':
+                allowed = {package_uom.id, unit_uom.id} if unit_uom else {package_uom.id}
+            else:
+                allowed = {package_uom.id}
+            if line.product_uom.id not in allowed:
+                raise ValidationError(_(
+                    'UoM "%s" is not allowed for product "%s".'
+                ) % (line.product_uom.name, tmpl.name))
 
     # ══════════════════════════════════════════════════════════════════════
     # UC-10 — Hard Block
