@@ -5,28 +5,55 @@ from odoo.exceptions import ValidationError
 class PurchaseOrderLine(models.Model):
     _inherit = 'purchase.order.line'
 
-    @api.onchange('product_id')
-    def _onchange_force_package_uom(self):
-        """
-        When a Unit product is selected on a purchase line,
-        automatically set UoM to Package (purchase always in Packages).
-        """
-        for line in self:
-            product = line.product_id.product_tmpl_id
-            if product.sell_as == 'unit' and product.package_uom_id:
-                line.product_uom = product.package_uom_id
+    def _get_allowed_uoms(self):
+        self.ensure_one()
+        allowed = self.env['uom.uom']
 
-    @api.constrains('product_uom', 'product_id')
-    def _check_purchase_uom(self):
-        """
-        Hard block: Unit products can only be purchased in Packages.
-        Prevents manual UoM override on purchase order lines.
-        """
+        unit_uom = self.env.ref('pharmacy.product_uom_unit', raise_if_not_found=False)
+        package_uom = self.env.ref('pharmacy.product_uom_package', raise_if_not_found=False)
+
+        if unit_uom:
+            allowed |= unit_uom
+        if package_uom:
+            allowed |= package_uom
+
+        return allowed
+
+    @api.onchange('product_id')
+    def _onchange_product_id_limit_uom(self):
         for line in self:
+            allowed_uoms = line._get_allowed_uoms()
+
+            if not line.product_id:
+                return {'domain': {'product_uom': [('id', 'in', allowed_uoms.ids)]}}
+
             product = line.product_id.product_tmpl_id
-            if product.sell_as == 'unit' and product.package_uom_id:
-                if line.product_uom != product.package_uom_id:
-                    raise ValidationError(
-                        f'"{product.name}" can only be purchased in Packages.\n'
-                        f'Please set UoM to: {product.package_uom_id.name}'
-                    )
+            package_uom = self.env.ref('pharmacy.product_uom_package', raise_if_not_found=False)
+            unit_uom = self.env.ref('pharmacy.product_uom_unit', raise_if_not_found=False)
+
+            if product.sell_as == 'unit' and package_uom:
+                line.product_uom = package_uom
+            elif unit_uom:
+                line.product_uom = unit_uom
+
+            return {'domain': {'product_uom': [('id', 'in', allowed_uoms.ids)]}}
+
+    @api.onchange('product_uom')
+    def _onchange_product_uom_limit_choices(self):
+        for line in self:
+            allowed_uoms = line._get_allowed_uoms()
+
+            if line.product_uom and line.product_uom not in allowed_uoms:
+                line.product_uom = False
+
+            return {'domain': {'product_uom': [('id', 'in', allowed_uoms.ids)]}}
+
+    @api.constrains('product_uom')
+    def _check_product_uom_allowed(self):
+        for line in self:
+            if not line.product_uom:
+                continue
+
+            allowed_uoms = line._get_allowed_uoms()
+            if line.product_uom not in allowed_uoms:
+                raise ValidationError("Purchase UoM must be only Unit or Package.")

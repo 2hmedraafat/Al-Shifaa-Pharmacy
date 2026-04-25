@@ -20,4 +20,13 @@
               parent="menu_pharmacy_root"
               sequence="40"/>
 
+    <!-- Add your report menuitems here once their actions are defined -->
+    <!-- Example:
+    <menuitem id="menu_pharmacy_low_stock_override_log"
+              name="Low Stock Override Log"
+              parent="menu_pharmacy_reports"
+              action="action_pharmacy_low_stock_override_log"
+              sequence="10"/>
+    -->
+
 </odoo>

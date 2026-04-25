@@ -10,9 +10,11 @@
                 <field name="patient_name"/>
                 <field name="patient_id"/>
                 <field name="product_id"/>
+                <field name="invoice_id"/>
                 <filter name="open" string="Open" domain="[('state','=','open')]"/>
                 <filter name="partial" string="Partial" domain="[('state','=','partial')]"/>
                 <filter name="done" string="Done" domain="[('state','=','done')]"/>
+                <filter name="invoiced" string="Invoiced" domain="[('invoice_id','!=',False)]"/>
                 <group expand="0" string="Group By">
                     <filter name="group_product" string="Medicine" context="{'group_by': 'product_id'}"/>
                     <filter name="group_state" string="Status" context="{'group_by': 'state'}"/>
@@ -39,6 +41,25 @@
                             class="btn btn-secondary"
                             invisible="state in ('done','cancelled')"/>
 
+                    <button name="action_create_invoice"
+                            string="Create Invoice"
+                            type="object"
+                            class="btn btn-success"
+                            groups="pharmacy.group_pharmacy_manager"
+                            invisible="qty_dispensed &lt;= 0 or invoice_id"/>
+
+                    <button name="action_view_sale_order"
+                            string="Sale Order"
+                            type="object"
+                            class="btn btn-info"
+                            invisible="not sale_order_id"/>
+
+                    <button name="action_view_invoice"
+                            string="Invoice"
+                            type="object"
+                            class="btn btn-info"
+                            invisible="not invoice_id"/>
+
                     <field name="state" widget="statusbar" statusbar_visible="open,partial,done"/>
                 </header>
                 <sheet>
@@ -53,6 +74,7 @@
                             <field name="patient_id"/>
                             <field name="doctor_name"/>
                             <field name="date"/>
+                            <field name="partner_id" readonly="1"/>
                         </group>
                         <group string="Medicine Information">
                             <field name="product_id"/>
@@ -60,6 +82,8 @@
                             <field name="qty_prescribed"/>
                             <field name="qty_dispensed" readonly="1"/>
                             <field name="qty_remaining" readonly="1"/>
+                            <field name="sale_order_id" readonly="1"/>
+                            <field name="invoice_id" readonly="1"/>
                         </group>
                     </group>
                     <group string="Notes">
@@ -88,6 +112,8 @@
                 <field name="qty_prescribed"/>
                 <field name="qty_dispensed"/>
                 <field name="qty_remaining"/>
+                <field name="sale_order_id" optional="hide"/>
+                <field name="invoice_id" optional="hide"/>
                 <field name="state" widget="badge"/>
             </list>
         </field>

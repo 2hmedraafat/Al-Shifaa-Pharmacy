@@ -1,3 +1,8 @@
-from . import product_template, product_barcode, pharmacy_register, pharmacy_prescription,  pos_session
-from . import sale ,product, purchase
-from . import sale_order_line, stock_move
+from . import product # &product_template.py
+from . import product_barcode
+from . import pharmacy_register
+from . import pharmacy_prescription
+from . import pos_session
+from . import sale    # &sale_order_line.py
+from . import purchase
+from . import stock_move

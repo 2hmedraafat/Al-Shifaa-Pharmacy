@@ -10,16 +10,17 @@
             <xpath expr="//field[@name='type']" position="before">
                 <field name="is_scheduled_medicine"
                        string="Medicine is Scheduled"
-                       groups="pharmacy.group_pharmacy_pharmacist,pharmacy.group_pharmacy_manager"/>
+                       groups="pharmacy.group_pharmacy_pharmacist,pharmacy.group_pharmacy_manager"
+                       invisible="classification != 'medicine'"/>
                 <field name="schedule_level"
-                       invisible="not is_scheduled_medicine"
+                       invisible="classification != 'medicine' or not is_scheduled_medicine"
                        groups="pharmacy.group_pharmacy_pharmacist,pharmacy.group_pharmacy_manager"/>
 
                 <field name="is_scheduled_medicine"
                        string="Medicine is Scheduled"
                        readonly="1"
                        groups="pharmacy.group_pharmacy_cashier"
-                       invisible="not is_scheduled_medicine"/>
+                       invisible="classification != 'medicine' or not is_scheduled_medicine"/>
             </xpath>
 
             <xpath expr="//field[@name='barcode']" position="attributes">

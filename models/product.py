@@ -5,6 +5,22 @@ from odoo.exceptions import ValidationError
 class ProductTemplate(models.Model):
     _inherit = 'product.template'
 
+
+    def _get_matching_purchase_uom(self, unit_uom=None):
+        self.ensure_one()
+        unit_uom = unit_uom or self.uom_id
+        if not unit_uom:
+            return False
+
+        if self.package_uom_id and self.package_uom_id.category_id == unit_uom.category_id:
+            return self.package_uom_id
+
+        if self.uom_po_id and self.uom_po_id.category_id == unit_uom.category_id:
+            return self.uom_po_id
+
+        return unit_uom
+
+
     # ══════════════════════════════════════════════════════════════════════
     # PACKAGE / UNIT SELLING
     # ══════════════════════════════════════════════════════════════════════
@@ -69,6 +85,24 @@ class ProductTemplate(models.Model):
     is_chronic = fields.Boolean(string='Chronic Medication', tracking=True)
     lot_tracking_required = fields.Boolean(string='Lot Tracking Required', tracking=True)
     expiry_tracking_required = fields.Boolean(string='Expiry Tracking Required', tracking=True)
+
+    # -------------------------------------------------------
+    # UC-06 — Scheduled Medicine
+    # -------------------------------------------------------
+    is_scheduled_medicine = fields.Boolean(
+        string='Medicine is Scheduled',
+        default=False,
+        tracking=True,
+        help='Check if this medicine is a controlled/scheduled substance.'
+    )
+
+    schedule_level = fields.Selection([
+        ('1', 'Schedule I'),
+        ('2', 'Schedule II'),
+        ('3', 'Schedule III'),
+        ('4', 'Schedule IV'),
+        ('5', 'Schedule V'),
+    ], string='Schedule Level', tracking=True)
 
     # ══════════════════════════════════════════════════════════════════════
     # UC-09 — Commission
@@ -181,6 +215,18 @@ class ProductTemplate(models.Model):
                         limit=rec.low_stock_limit,
                     ))
 
+    @api.constrains('barcode')
+    def _check_barcode_format(self):
+        for rec in self:
+            if rec.barcode:
+                rec._validate_barcode_format(rec.barcode)
+
+    @api.constrains('uom_id', 'uom_po_id')
+    def _check_uom_same_category(self):
+        for rec in self:
+            if rec.uom_id and rec.uom_po_id and rec.uom_id.category_id != rec.uom_po_id.category_id:
+                raise ValidationError(_('The default Unit of Measure and the purchase Unit of Measure must be in the same category.'))
+
     # ══════════════════════════════════════════════════════════════════════
     # ONCHANGE
     # ══════════════════════════════════════════════════════════════════════
@@ -210,69 +256,201 @@ class ProductTemplate(models.Model):
     @api.onchange('sell_as', 'units_per_package')
     def _onchange_sell_as(self):
         for rec in self:
-            if rec.sell_as == 'package':
-                unit = rec.env.ref('uom.product_uom_unit', raise_if_not_found=False)
-                if unit:
-                    rec.uom_id = unit
-                    rec.uom_po_id = unit
-                rec.package_uom_id = False
-                rec.units_per_package = 1
-
-            elif rec.sell_as == 'unit' and rec.units_per_package > 0:
-                unit_uom, pkg_uom = rec._get_or_create_package_uom()
-                if unit_uom and pkg_uom:
-                    rec.uom_id = unit_uom
-                    rec.uom_po_id = pkg_uom
-                    rec.package_uom_id = pkg_uom
+            sync_vals = rec._apply_sell_as_uom()
+            for field_name, value in sync_vals.items():
+                setattr(rec, field_name, value)
 
     # ══════════════════════════════════════════════════════════════════════
     # UOM SETUP
     # ══════════════════════════════════════════════════════════════════════
-    def _get_or_create_package_uom(self):
+    def _get_pharmacy_uom_category(self):
         self.ensure_one()
-        if not self.name or self.units_per_package < 1:
-            return False, False
+        category = self.env.ref('pharmacy.uom_categ_pharmacy', raise_if_not_found=False)
+        if category:
+            return category
+        base_unit = self.env.ref('uom.product_uom_unit', raise_if_not_found=False)
+        return base_unit.category_id if base_unit else False
 
-        cat_name = 'Pkg/%s' % self.name
-        category = self.env['uom.category'].search([('name', '=', cat_name)], limit=1)
-        if not category:
-            category = self.env['uom.category'].create({'name': cat_name})
+    def _get_reference_unit_uom(self, category):
+        self.ensure_one()
+        pharmacy_unit = self.env.ref('pharmacy.product_uom_unit', raise_if_not_found=False)
+        if pharmacy_unit and pharmacy_unit.category_id == category:
+            return pharmacy_unit
 
         unit_uom = self.env['uom.uom'].search([
             ('category_id', '=', category.id),
-            ('name', '=', 'Unit'),
+            ('uom_type', '=', 'reference'),
         ], limit=1)
-        if not unit_uom:
-            unit_uom = self.env['uom.uom'].create({
-                'name': 'Unit',
-                'category_id': category.id,
-                'uom_type': 'reference',
-                'factor': 1.0,
-                'rounding': 1.0,
-            })
+        if unit_uom:
+            return unit_uom
 
-        pkg_uom = self.env['uom.uom'].search([
-            ('category_id', '=', category.id),
-            ('name', '=', 'Package'),
-        ], limit=1)
+        return self.env['uom.uom'].create({
+            'name': 'Unit',
+            'category_id': category.id,
+            'uom_type': 'reference',
+            'factor': 1.0,
+            'rounding': 1.0,
+        })
+
+    def _get_or_create_package_uom(self):
+        self.ensure_one()
+        if self.units_per_package < 1:
+            return False, False
+
+        category = self._get_pharmacy_uom_category()
+        if not category:
+            return False, False
+
+        unit_uom = self._get_reference_unit_uom(category)
+
+        # Use one fixed Package UoM for the whole module
+        pkg_uom = self.env.ref('pharmacy.product_uom_package', raise_if_not_found=False)
+        if not pkg_uom:
+            pkg_uom = self.env['uom.uom'].search([
+                ('category_id', '=', category.id),
+                ('name', '=', 'Package'),
+            ], limit=1)
+
         if not pkg_uom:
             pkg_uom = self.env['uom.uom'].create({
                 'name': 'Package',
                 'category_id': category.id,
                 'uom_type': 'bigger',
-                'factor_inv': float(self.units_per_package),
+                'factor_inv': 1.0,
                 'rounding': 0.01,
             })
-        else:
-            if pkg_uom.factor_inv != float(self.units_per_package):
-                pkg_uom.factor_inv = float(self.units_per_package)
 
         return unit_uom, pkg_uom
+
+    def _apply_sell_as_uom(self):
+        self.ensure_one()
+        vals = {}
+
+        if self.sell_as == 'package':
+            category = self._get_pharmacy_uom_category()
+            if not category:
+                return vals
+            unit_uom = self._get_reference_unit_uom(category)
+            vals.update({
+                'uom_id': unit_uom.id,
+                'uom_po_id': unit_uom.id,
+                'package_uom_id': False,
+                'units_per_package': 1,
+            })
+            return vals
+
+        if self.sell_as == 'unit' and self.units_per_package > 0:
+            unit_uom, pkg_uom = self._get_or_create_package_uom()
+            if unit_uom and pkg_uom:
+                vals.update({
+                    'uom_id': unit_uom.id,
+                    'uom_po_id': unit_uom.id,
+                    'package_uom_id': pkg_uom.id,
+                })
+
+        return vals
+
+    # -------------------------------------------------------
+    # EAN-13 Check Digit Calculator
+    # -------------------------------------------------------
+    def _compute_ean13_check_digit(self, barcode_12):
+        total = 0
+        for i, digit in enumerate(barcode_12):
+            if i % 2 == 0:
+                total += int(digit) * 1
+            else:
+                total += int(digit) * 3
+        check = (10 - (total % 10)) % 10
+        return str(check)
+
+    # -------------------------------------------------------
+    # UC-03 — Barcode Format Validation
+    # Supported: Internal Pharmacy Barcode, EAN-8, EAN-13, UPC-A (12), UPC-E (8), Code128
+    # -------------------------------------------------------
+    def _validate_barcode_format(self, barcode):
+        barcode = barcode.strip()
+
+        if not barcode:
+            raise ValidationError(_('Barcode cannot be empty.'))
+
+        if barcode.isdigit() and len(barcode) == 8 and barcode.startswith('21'):
+            return True
+
+        if not barcode.isdigit():
+            return True
+
+        length = len(barcode)
+
+        if length == 13:
+            self._check_ean_digit(barcode, 13)
+        elif length == 8:
+            self._check_ean_digit(barcode, 8)
+        elif length == 12:
+            self._check_upc_digit(barcode)
+        else:
+            raise ValidationError(
+                _('Barcode "%s" has unsupported format.'
+                  'Accepted formats: Internal Pharmacy Barcode, EAN-8, EAN-13, UPC-A (12 digits), UPC-E (8 digits), Code128.')
+                % barcode
+            )
+        return True
+
+    def _check_ean_digit(self, barcode, length):
+        digits = [int(d) for d in barcode]
+        if length == 13:
+            total = sum(d * (1 if i % 2 == 0 else 3) for i, d in enumerate(digits[:-1]))
+        else:
+            total = sum(d * (3 if i % 2 == 0 else 1) for i, d in enumerate(digits[:-1]))
+        check = (10 - (total % 10)) % 10
+        if check != digits[-1]:
+            raise ValidationError(
+                _('Barcode "%s" has an invalid check digit. Expected %d, got %d.'
+                  'Please verify the barcode number.')
+                % (barcode, check, digits[-1])
+            )
+
+    def _check_upc_digit(self, barcode):
+        digits = [int(d) for d in barcode]
+        total = sum(d * (3 if i % 2 == 0 else 1) for i, d in enumerate(digits[:-1]))
+        check = (10 - (total % 10)) % 10
+        if check != digits[-1]:
+            raise ValidationError(
+                _('UPC-A Barcode "%s" has an invalid check digit. Expected %d, got %d.'
+                  'Please verify the barcode number.')
+                % (barcode, check, digits[-1])
+            )
+
+    # -------------------------------------------------------
+    # UC-03 — Generate Internal Barcode
+    # Format: 21 + 01 + 0001
+    # Example: 21010001
+    # -------------------------------------------------------
+    def action_generate_barcode(self):
+        for product in self:
+            sync_vals = product._apply_sell_as_uom()
+            if sync_vals:
+                super(ProductTemplate, product).write(sync_vals)
+
+            if product.uom_id and product.uom_po_id and product.uom_id.category_id != product.uom_po_id.category_id:
+                raise ValidationError(_('The default Unit of Measure and the purchase Unit of Measure must be in the same category.'))
+
+            sequence_value = self.env['ir.sequence'].next_by_code('pharmacy.barcode')
+            if not sequence_value:
+                raise ValidationError(
+                    _('Barcode sequence "pharmacy.barcode" not found. '
+                      'Please check your data configuration.')
+                )
+
+            sequence_digits = ''.join(filter(str.isdigit, sequence_value))
+            sequence_digits = sequence_digits.zfill(4)[-4:]
+
+            new_barcode = f'2101{sequence_digits}'
+            product.barcode = new_barcode
 
     # ══════════════════════════════════════════════════════════════════════
     # COMPUTES
     # ══════════════════════════════════════════════════════════════════════
-    @api.depends('list_price', 'units_per_package', 'sell_as')
+    @api.depends('list_price', 'sell_as', 'units_per_package')
     def _compute_unit_price(self):
         for rec in self:
             if rec.sell_as == 'unit' and rec.units_per_package > 0:
@@ -341,9 +519,40 @@ class ProductTemplate(models.Model):
                 tmpl.pharmacist_price_display = '—'
 
     # ══════════════════════════════════════════════════════════════════════
-    # UNIFIED WRITE
+    # UNIFIED CREATE / WRITE
     # ══════════════════════════════════════════════════════════════════════
+    @api.model_create_multi
+    def create(self, vals_list):
+        Uom = self.env['uom.uom']
+        unit_ref = self.env.ref('pharmacy.product_uom_unit', raise_if_not_found=False) or self.env.ref('uom.product_uom_unit', raise_if_not_found=False)
+
+        for vals in vals_list:
+            uom_id = vals.get('uom_id')
+            uom_po_id = vals.get('uom_po_id')
+
+            if uom_id and uom_po_id:
+                uom = Uom.browse(uom_id)
+                uom_po = Uom.browse(uom_po_id)
+                if uom and uom_po and uom.category_id != uom_po.category_id:
+                    vals['uom_po_id'] = uom_id
+
+            if vals.get('sell_as') in ('package', 'unit') and unit_ref:
+                vals.setdefault('uom_id', unit_ref.id)
+                vals['uom_po_id'] = vals['uom_id']
+
+        records = super().create(vals_list)
+
+        for rec in records:
+            if rec.sell_as in ('package', 'unit'):
+                sync_vals = rec._apply_sell_as_uom()
+                if sync_vals:
+                    super(ProductTemplate, rec).write(sync_vals)
+
+        return records
+
     def write(self, vals):
+        Uom = self.env['uom.uom']
+
         if 'sell_as' in vals or 'units_per_package' in vals:
             for rec in self:
                 done_moves = self.env['stock.move'].search([
@@ -372,7 +581,39 @@ class ProductTemplate(models.Model):
                         subtype_xmlid='mail.mt_note',
                     )
 
-        return super().write(vals)
+        future_uom_id = vals.get('uom_id')
+        future_uom_po_id = vals.get('uom_po_id')
+        if future_uom_id and future_uom_po_id:
+            uom = Uom.browse(future_uom_id)
+            uom_po = Uom.browse(future_uom_po_id)
+            if uom and uom_po and uom.category_id != uom_po.category_id:
+                vals['uom_po_id'] = future_uom_id
+
+        if 'sell_as' in vals or 'units_per_package' in vals:
+            for rec in self:
+                target_uom_id = vals.get('uom_id', rec.uom_id.id if rec.uom_id else False)
+                if target_uom_id:
+                    vals['uom_po_id'] = target_uom_id
+
+        result = super().write(vals)
+
+        if 'sell_as' in vals or 'units_per_package' in vals:
+            for rec in self:
+                sync_vals = rec._apply_sell_as_uom()
+                if sync_vals:
+                    super(ProductTemplate, rec).write(sync_vals)
+
+        return result
+
+
+class ProductProduct(models.Model):
+    _inherit = 'product.product'
+
+    is_scheduled_medicine = fields.Boolean(
+        related='product_tmpl_id.is_scheduled_medicine',
+        string='Medicine is Scheduled',
+        store=True
+    )
 
 
 class PharmacyLowStockOverrideLog(models.Model):
@@ -420,4 +661,4 @@ class PharmacyCostHistory(models.Model):
     unit_purchase_price = fields.Float(string='Unit Purchase Price', digits=(16, 3))
     picking_id = fields.Many2one('stock.picking', string='Source Receipt', readonly=True)
     purchase_order_id = fields.Many2one('purchase.order', string='Purchase Order', readonly=True)
-    note = fields.Char(string='Note')
+    note = fields.Text(string='Note', readonly=True)

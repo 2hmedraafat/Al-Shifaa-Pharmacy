@@ -3,7 +3,7 @@
     'version': '18.0.1.0.0',
     'category': 'Pharmacy',
     'license': 'LGPL-3',
-    'depends': ['product', 'stock', 'point_of_sale', 'mail'],
+    'depends': ['product', 'stock', 'point_of_sale', 'mail', 'sale_management', 'purchase', 'account'],
     'data': [
         'security/pharmacy_groups.xml',
         'security/ir.model.access.csv',
@@ -18,8 +18,9 @@
         'views/product_views.xml',
         'views/sale_views.xml',
         'views/product_search_views.xml',
+        'views/purchase_order_views.xml',
 
-        'views/menus.xml',  
+        'views/menus.xml',
 
         'report/product_classification_report.xml',
         'report/product_classification_report_template.xml',
