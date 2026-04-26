@@ -20,6 +20,13 @@
               parent="menu_pharmacy_root"
               sequence="40"/>
 
+    <menuitem id="menu_pharmacy_price_history"
+              name="Price History"
+              parent="menu_pharmacy_reports"
+              action="action_pharmacy_price_history"
+              groups="pharmacy.group_pharmacy_manager,pharmacy.group_pharmacy_price_manager"
+              sequence="10"/>
+
     <!-- Add your report menuitems here once their actions are defined -->
     <!-- Example:
     <menuitem id="menu_pharmacy_low_stock_override_log"

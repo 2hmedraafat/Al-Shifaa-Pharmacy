@@ -24,5 +24,14 @@
             <field name="comment">Full access to all pharmacy features including scheduled medicines and reports.</field>
         </record>
 
+
+        <!-- UC-07 Price Manager -->
+        <record id="group_pharmacy_price_manager" model="res.groups">
+            <field name="name">Pharmacy Price Manager</field>
+            <field name="category_id" ref="base.module_category_inventory_inventory"/>
+            <field name="implied_ids" eval="[(4, ref('group_pharmacy_manager'))]"/>
+            <field name="comment">Can manage public selling prices, government price lock, price history, and bulk price updates.</field>
+        </record>
+
     </data>
 </odoo>

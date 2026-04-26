@@ -7,4 +7,5 @@ from . import sale    # &sale_order_line.py
 from . import purchase
 from . import stock_move
 from . import commission_report
+from . import product_price_history
 

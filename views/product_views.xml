@@ -1,25 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <record id="view_product_form_pharmacy" model="ir.ui.view">
-        <field name="name">product.template.form.pharmacy</field>
-        <field name="model">product.template</field>
-        <field name="inherit_id" ref="product.product_template_only_form_view"/>
-        <field name="arch" type="xml">
 
-            <xpath expr="//page[@name='general_information']//group[@name='group_standard_price']" position="after">
+    <menuitem id="menu_pharmacy_root"
+              name="Pharmacy"
+              sequence="100"/>
 
-                <group string="Selling Configuration">
-                    <field name="sell_as" widget="radio" options="{'horizontal': true}"/>
-                    <field name="units_per_package"
-                           invisible="sell_as != 'unit'"
-                           required="sell_as == 'unit'"/>
-                    <field name="display_stock" readonly="1"/>
-                <field name="commission_pct" string="Commission %"/>
-                </group>
+    <menuitem id="menu_pharmacy_prescriptions_root"
+              name="Operations"
+              parent="menu_pharmacy_root"
+              sequence="5"/>
 
-                <field name="route_ids" widget="many2many_tags" groups="stock.group_adv_location"/>
+    <menuitem id="menu_pharmacy_compliance"
+              name="Compliance"
+              parent="menu_pharmacy_root"
+              sequence="30"/>
 
-            </xpath>
+    <menuitem id="menu_pharmacy_reports"
+              name="Reports"
+              parent="menu_pharmacy_root"
+              sequence="40"/>
 
-        </field>
-    </record>
+    <menuitem id="menu_pharmacy_price_history"
+              name="Price History"
+              parent="menu_pharmacy_reports"
+              action="action_pharmacy_price_history"
+              groups="pharmacy.group_pharmacy_manager,pharmacy.group_pharmacy_price_manager"
+              sequence="10"/>
+
+    <!-- Add your report menuitems here once their actions are defined -->
+    <!-- Example:
+    <menuitem id="menu_pharmacy_low_stock_override_log"
+              name="Low Stock Override Log"
+              parent="menu_pharmacy_reports"
+              action="action_pharmacy_low_stock_override_log"
+              sequence="10"/>
+    -->
+
 </odoo>

@@ -179,8 +179,31 @@ class ProductTemplate(models.Model):
     )
 
     # ══════════════════════════════════════════════════════════════════════
+    # UC-07 — Public Price Control
+    # ══════════════════════════════════════════════════════════════════════
+    government_price_lock = fields.Boolean(
+        string='Government Price Lock',
+        default=False,
+        tracking=True,
+        help='When enabled, only Pharmacy Price Managers can change the official Sales Price.',
+    )
+
+    price_history_ids = fields.One2many(
+        'pharmacy.price.history',
+        'product_tmpl_id',
+        string='Price History',
+        readonly=True,
+    )
+
+    # ══════════════════════════════════════════════════════════════════════
     # VALIDATIONS
     # ══════════════════════════════════════════════════════════════════════
+    @api.constrains('list_price')
+    def _check_public_price_positive(self):
+        for rec in self:
+            if rec.list_price <= 0:
+                raise ValidationError(_('Public Price / Sales Price must be greater than 0.'))
+
     @api.constrains('sell_as', 'units_per_package')
     def _check_units(self):
         for rec in self:
@@ -251,6 +274,18 @@ class ProductTemplate(models.Model):
                 return {'warning': {
                     'title': _('Classification Change Warning'),
                     'message': _('Changing classification may affect existing stock rules. Continue?'),
+                }}
+
+    @api.onchange('list_price')
+    def _onchange_public_price_below_cost(self):
+        for rec in self:
+            if rec.list_price and rec.pharmacist_price and rec.list_price < rec.pharmacist_price:
+                return {'warning': {
+                    'title': _('Selling Below Cost'),
+                    'message': _(
+                        'Public Price is less than the current average purchase cost. '
+                        'Manager can proceed if this is intended.'
+                    ),
                 }}
 
     @api.onchange('sell_as', 'units_per_package')
@@ -519,6 +554,37 @@ class ProductTemplate(models.Model):
                 tmpl.pharmacist_price_display = '—'
 
     # ══════════════════════════════════════════════════════════════════════
+    # UC-07 HELPERS
+    # ══════════════════════════════════════════════════════════════════════
+    def _user_can_manage_public_price(self):
+        return (
+            self.env.user.has_group('pharmacy.group_pharmacy_price_manager')
+            or self.env.user.has_group('pharmacy.group_pharmacy_manager')
+            or self.env.is_superuser()
+        )
+
+    def _log_public_price_change(self, old_price, new_price, source='manual'):
+        self.ensure_one()
+        if old_price == new_price:
+            return
+        self.env['pharmacy.price.history'].sudo().create({
+            'product_tmpl_id': self.id,
+            'old_price': old_price,
+            'new_price': new_price,
+            'currency_id': self.currency_id.id or self.env.company.currency_id.id,
+            'user_id': self.env.user.id,
+            'source': source,
+        })
+        self.message_post(
+            body=_(
+                '<b>Public Price Changed</b><br/>From: <b>%(old).2f</b> To: <b>%(new).2f</b>',
+                old=old_price,
+                new=new_price,
+            ),
+            subtype_xmlid='mail.mt_note',
+        )
+
+    # ══════════════════════════════════════════════════════════════════════
     # UNIFIED CREATE / WRITE
     # ══════════════════════════════════════════════════════════════════════
     @api.model_create_multi
@@ -540,6 +606,9 @@ class ProductTemplate(models.Model):
                 vals.setdefault('uom_id', unit_ref.id)
                 vals['uom_po_id'] = vals['uom_id']
 
+            if 'list_price' in vals and vals.get('list_price') is not None and vals.get('list_price') <= 0:
+                raise ValidationError(_('Public Price / Sales Price must be greater than 0.'))
+
         records = super().create(vals_list)
 
         for rec in records:
@@ -552,6 +621,22 @@ class ProductTemplate(models.Model):
 
     def write(self, vals):
         Uom = self.env['uom.uom']
+
+        price_change_source = self.env.context.get('price_change_source', 'manual')
+        old_prices = {}
+        if 'list_price' in vals:
+            if vals.get('list_price') is not None and vals.get('list_price') <= 0:
+                raise ValidationError(_('Public Price / Sales Price must be greater than 0.'))
+            old_prices = {rec.id: rec.list_price for rec in self}
+            for rec in self:
+                if rec.government_price_lock and not rec._user_can_manage_public_price():
+                    raise ValidationError(_(
+                        'Price is government-regulated and cannot be changed by your user. '
+                        'Please contact the Pharmacy Manager.'
+                    ))
+
+        if 'government_price_lock' in vals and vals.get('government_price_lock') and not self._user_can_manage_public_price():
+            raise ValidationError(_('Only Pharmacy Manager can enable Government Price Lock.'))
 
         if 'sell_as' in vals or 'units_per_package' in vals:
             for rec in self:
@@ -596,6 +681,12 @@ class ProductTemplate(models.Model):
                     vals['uom_po_id'] = target_uom_id
 
         result = super().write(vals)
+
+        if 'list_price' in vals:
+            for rec in self:
+                old_price = old_prices.get(rec.id)
+                if old_price is not None and old_price != rec.list_price:
+                    rec._log_public_price_change(old_price, rec.list_price, source=price_change_source)
 
         if 'sell_as' in vals or 'units_per_package' in vals:
             for rec in self:

@@ -23,6 +23,8 @@
 
         'views/menus.xml',
 
+        'wizard/bulk_price_update_wizard_views.xml',
+
         'report/product_classification_report.xml',
         'report/product_classification_report_template.xml',
     ],
