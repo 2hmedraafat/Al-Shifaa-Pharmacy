@@ -216,6 +216,12 @@ class ProductTemplate(models.Model):
             if not rec.classification:
                 raise ValidationError(_('Classification is mandatory.'))
 
+    @api.constrains('is_scheduled_medicine', 'schedule_level')
+    def _check_schedule_level_required(self):
+        for rec in self:
+            if rec.is_scheduled_medicine and not rec.schedule_level:
+                raise ValidationError(_('Please select Schedule Level before saving a scheduled medicine.'))
+
     @api.constrains('max_qty_per_invoice')
     def _check_max_qty_per_invoice(self):
         for rec in self:

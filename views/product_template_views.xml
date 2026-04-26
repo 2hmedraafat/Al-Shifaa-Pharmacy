@@ -83,6 +83,16 @@
 
             <xpath expr="//page[@name='general_information']/group" position="after">
                 <group colspan="2">
+                    <separator string="Selling Configuration" colspan="2"/>
+                    <group col="2" colspan="2">
+                        <group>
+                            <field name="sell_as" widget="radio" options="{'horizontal': true}"/>
+                            <field name="units_per_package" invisible="sell_as == 'package'"/>
+                            <field name="commission_pct"/>
+                        </group>
+                        <group/>
+                    </group>
+
                     <separator string="Pharmacy Rules" colspan="2"/>
                     <group col="2" colspan="2">
                         <group>
