@@ -312,7 +312,30 @@ class SaleOrderLine(models.Model):
 class SaleOrder(models.Model):
     _inherit = 'sale.order'
 
+    def _get_scheduled_medicine_lines(self):
+        return self.order_line.filtered(
+            lambda line: line.product_id
+            and line.product_id.product_tmpl_id.is_scheduled_medicine
+        )
+
     def action_confirm(self):
+        for order in self:
+            scheduled_lines = order._get_scheduled_medicine_lines()
+            if scheduled_lines and not self.env.context.get('skip_scheduled_medicine_confirm'):
+                medicine_names = ', '.join(scheduled_lines.mapped('product_id.display_name'))
+                wizard = self.env['sale.scheduled.medicine.confirm.wizard'].create({
+                    'sale_order_id': order.id,
+                    'medicine_names': medicine_names,
+                })
+                return {
+                    'name': _('Scheduled Medicine!'),
+                    'type': 'ir.actions.act_window',
+                    'res_model': 'sale.scheduled.medicine.confirm.wizard',
+                    'view_mode': 'form',
+                    'res_id': wizard.id,
+                    'target': 'new',
+                }
+
         res = super().action_confirm()
         for order in self:
             order.order_line._log_low_stock_override()

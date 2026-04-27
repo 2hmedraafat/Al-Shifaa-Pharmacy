@@ -22,6 +22,7 @@
         'views/commission_report_views.xml',
 
         'wizard/bulk_price_update_wizard_views.xml',
+        'wizard/scheduled_medicine_sale_confirm_views.xml',
 
         'report/product_classification_report.xml',
         'report/product_classification_report_template.xml',
