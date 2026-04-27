@@ -1,20 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
+    <!-- ==================== ROOT ==================== -->
     <menuitem id="menu_pharmacy_root"
               name="Pharmacy"
               sequence="100"/>
 
+    <!-- ==================== OPERATIONS ==================== -->
     <menuitem id="menu_pharmacy_prescriptions_root"
               name="Operations"
               parent="menu_pharmacy_root"
               sequence="5"/>
 
+    <menuitem id="menu_pharmacy_medicines"
+              name="Medicines"
+              parent="menu_pharmacy_prescriptions_root"
+              action="action_pharmacy_medicines"
+              sequence="10"/>
+
+    <menuitem id="menu_pharmacy_prescriptions"
+              name="Prescriptions"
+              parent="menu_pharmacy_prescriptions_root"
+              action="action_pharmacy_prescription"
+              sequence="20"/>
+
+    <!-- ==================== COMPLIANCE ==================== -->
     <menuitem id="menu_pharmacy_compliance"
               name="Compliance"
               parent="menu_pharmacy_root"
               sequence="30"/>
 
+    <menuitem id="menu_pharmacy_register"
+              name="Controlled Substances Register"
+              parent="menu_pharmacy_compliance"
+              action="action_pharmacy_register"
+              sequence="10"/>
+
+    <!-- ==================== REPORTS ==================== -->
     <menuitem id="menu_pharmacy_reports"
               name="Reports"
               parent="menu_pharmacy_root"
@@ -27,13 +49,11 @@
               groups="pharmacy.group_pharmacy_manager,pharmacy.group_pharmacy_price_manager"
               sequence="10"/>
 
-    <!-- Add your report menuitems here once their actions are defined -->
-    <!-- Example:
-    <menuitem id="menu_pharmacy_low_stock_override_log"
-              name="Low Stock Override Log"
-              parent="menu_pharmacy_reports"
-              action="action_pharmacy_low_stock_override_log"
-              sequence="10"/>
-    -->
+    <!-- ==================== SALES MENU (external) ==================== -->
+    <menuitem id="menu_pharmacy_commission_report_sales"
+              name="Commission Report"
+              parent="sale.sale_order_menu"
+              action="action_pharmacy_commission_report"
+              sequence="55"/>
 
 </odoo>

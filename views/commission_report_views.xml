@@ -59,6 +59,4 @@
         <field name="search_view_id" ref="view_pharmacy_commission_report_search"/>
         <field name="context">{'search_default_with_commission_or_confirmed': 1, 'search_default_group_by_salesperson': 1}</field>
     </record>
-
-    <menuitem id="menu_pharmacy_commission_report_sales" name="Commission Report" parent="sale.sale_order_menu" action="action_pharmacy_commission_report" sequence="55"/>
 </odoo>

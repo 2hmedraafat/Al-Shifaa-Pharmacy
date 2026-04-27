@@ -132,16 +132,4 @@
         <field name="view_mode">list,form</field>
     </record>
 
-    <menuitem id="menu_pharmacy_medicines"
-              name="Medicines"
-              parent="menu_pharmacy_prescriptions_root"
-              action="action_pharmacy_medicines"
-              sequence="10"/>
-
-    <menuitem id="menu_pharmacy_prescriptions"
-              name="Prescriptions"
-              parent="menu_pharmacy_prescriptions_root"
-              action="action_pharmacy_prescription"
-              sequence="20"/>
-
 </odoo>
