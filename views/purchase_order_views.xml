@@ -6,11 +6,28 @@
             <field name="model">purchase.order</field>
             <field name="inherit_id" ref="purchase.purchase_order_form"/>
             <field name="arch" type="xml">
+
+                <!-- Hide UoM column completely using column_invisible -->
                 <xpath expr="//field[@name='order_line']//list//field[@name='product_uom']" position="attributes">
-                    <attribute name="options">{'no_create': True, 'no_create_edit': True, 'no_open': True}</attribute>
-                    <!-- readonly so user can't change it manually; Python onchange/constrains enforce Package -->
+                    <attribute name="column_invisible">1</attribute>
+                    <attribute name="invisible">1</attribute>
                     <attribute name="readonly">1</attribute>
                 </xpath>
+
+                <!-- Add allowed_purchase_uom_ids as invisible -->
+                <xpath expr="//field[@name='order_line']//list//field[@name='product_uom']" position="after">
+                    <field name="allowed_purchase_uom_ids" column_invisible="1"/>
+                </xpath>
+
+                <!-- Add Package Quantity before Unit Price -->
+                <xpath expr="//field[@name='order_line']//list//field[@name='price_unit']" position="before">
+                    <field name="purchase_package_qty_display" string="Package Quantity" readonly="1" width="180px"/>
+                </xpath>
+
+                <!-- Remove Odoo packaging columns completely -->
+                <xpath expr="//field[@name='order_line']//list//field[@name='product_packaging_qty']" position="replace"/>
+                <xpath expr="//field[@name='order_line']//list//field[@name='product_packaging_id']" position="replace"/>
+
             </field>
         </record>
     </data>

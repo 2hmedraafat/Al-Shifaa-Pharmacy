@@ -87,7 +87,7 @@
                     <group col="2" colspan="2">
                         <group>
                             <field name="sell_as" widget="radio" options="{'horizontal': true}"/>
-                            <field name="units_per_package" invisible="sell_as == 'package'"/>
+                            <field name="units_per_package"/>\n                            <field name="package_uom_id" readonly="1"/>\n                            <field name="display_stock" readonly="1"/>
                             <field name="commission_pct"/>
                         </group>
                         <group/>

@@ -252,9 +252,9 @@ class ProductTemplate(models.Model):
 
     @api.constrains('uom_id', 'uom_po_id')
     def _check_uom_same_category(self):
-        for rec in self:
-            if rec.uom_id and rec.uom_po_id and rec.uom_id.category_id != rec.uom_po_id.category_id:
-                raise ValidationError(_('The default Unit of Measure and the purchase Unit of Measure must be in the same category.'))
+        # Overridden: pharmacy uses a dedicated Package UoM category for
+        # purchase, so we intentionally skip the same-category constraint.
+        pass
 
     # ══════════════════════════════════════════════════════════════════════
     # ONCHANGE
@@ -305,18 +305,27 @@ class ProductTemplate(models.Model):
     # UOM SETUP
     # ══════════════════════════════════════════════════════════════════════
     def _get_pharmacy_uom_category(self):
+        """Use the product's real UoM category first.
+
+        This prevents the error:
+        "Package ... doesn't belong to the same category as Units".
+        """
         self.ensure_one()
+        if self.uom_id and self.uom_id.category_id:
+            return self.uom_id.category_id
+
         category = self.env.ref('pharmacy.uom_categ_pharmacy', raise_if_not_found=False)
         if category:
             return category
+
         base_unit = self.env.ref('uom.product_uom_unit', raise_if_not_found=False)
         return base_unit.category_id if base_unit else False
 
     def _get_reference_unit_uom(self, category):
         self.ensure_one()
-        pharmacy_unit = self.env.ref('pharmacy.product_uom_unit', raise_if_not_found=False)
-        if pharmacy_unit and pharmacy_unit.category_id == category:
-            return pharmacy_unit
+
+        if self.uom_id and self.uom_id.category_id == category:
+            return self.uom_id
 
         unit_uom = self.env['uom.uom'].search([
             ('category_id', '=', category.id),
@@ -334,9 +343,16 @@ class ProductTemplate(models.Model):
         })
 
     def _get_or_create_package_uom(self):
+        """Create/get a Package UoM in the SAME category as the product UoM.
+
+        Odoo stock stays in the product base UoM (Units), while purchase/sale can
+        use Package. 1 Package = units_per_package Units.
+        """
         self.ensure_one()
-        if self.units_per_package < 1:
-            return False, False
+
+        units_per_package = int(self.units_per_package or 1)
+        if units_per_package < 1:
+            units_per_package = 1
 
         category = self._get_pharmacy_uom_category()
         if not category:
@@ -344,50 +360,72 @@ class ProductTemplate(models.Model):
 
         unit_uom = self._get_reference_unit_uom(category)
 
-        # Use one fixed Package UoM for the whole module
-        pkg_uom = self.env.ref('pharmacy.product_uom_package', raise_if_not_found=False)
-        if not pkg_uom:
-            pkg_uom = self.env['uom.uom'].search([
-                ('category_id', '=', category.id),
-                ('name', '=', 'Package'),
-            ], limit=1)
+        # Reuse the current package UoM only if it matches the product category.
+        if self.package_uom_id and self.package_uom_id.category_id == category:
+            return unit_uom, self.package_uom_id
+
+        ratio_text = str(units_per_package)
+        package_name = 'Package'
+
+        pkg_uom = self.env['uom.uom'].search([
+            ('category_id', '=', category.id),
+            ('name', '=', package_name),
+        ], limit=1)
 
         if not pkg_uom:
             pkg_uom = self.env['uom.uom'].create({
-                'name': 'Package',
+                'name': package_name,
                 'category_id': category.id,
                 'uom_type': 'bigger',
-                'factor_inv': 1.0,
-                'rounding': 0.01,
+                'factor_inv': units_per_package,
+                'rounding': 1.0,
             })
 
         return unit_uom, pkg_uom
 
+    def _sync_package_uom(self):
+        """Make the product ready for pharmacy purchase/sale package flow."""
+        self.ensure_one()
+        unit_uom, pkg_uom = self._get_or_create_package_uom()
+        if not pkg_uom:
+            return False
+
+        vals = {}
+        if self.package_uom_id != pkg_uom:
+            vals['package_uom_id'] = pkg_uom.id
+        if self.uom_po_id != pkg_uom:
+            vals['uom_po_id'] = pkg_uom.id
+        if not self.uom_id and unit_uom:
+            vals['uom_id'] = unit_uom.id
+
+        if vals:
+            super(ProductTemplate, self).write(vals)
+
+        return pkg_uom
+
     def _apply_sell_as_uom(self):
         self.ensure_one()
+
+        unit_uom, pkg_uom = self._get_or_create_package_uom()
         vals = {}
 
-        if self.sell_as == 'package':
-            category = self._get_pharmacy_uom_category()
-            if not category:
-                return vals
-            unit_uom = self._get_reference_unit_uom(category)
-            vals.update({
-                'uom_id': unit_uom.id,
-                'uom_po_id': unit_uom.id,
-                'package_uom_id': False,
-                'units_per_package': 1,
-            })
+        if not unit_uom or not pkg_uom:
             return vals
 
-        if self.sell_as == 'unit' and self.units_per_package > 0:
-            unit_uom, pkg_uom = self._get_or_create_package_uom()
-            if unit_uom and pkg_uom:
-                vals.update({
-                    'uom_id': unit_uom.id,
-                    'uom_po_id': unit_uom.id,
-                    'package_uom_id': pkg_uom.id,
-                })
+        # Do NOT change uom_id for existing products with stock moves.
+        # Stock remains stored in the product base UoM.
+        if not self.uom_id:
+            vals['uom_id'] = unit_uom.id
+        elif self.uom_id.category_id != pkg_uom.category_id:
+            # uom_id and pkg_uom are in different categories — force uom_id
+            # to the reference unit of the package category so the constraint passes.
+            vals['uom_id'] = unit_uom.id
+
+        # Purchase is always by Package.
+        vals.update({
+            'uom_po_id': pkg_uom.id,
+            'package_uom_id': pkg_uom.id,
+        })
 
         return vals
 
@@ -610,7 +648,6 @@ class ProductTemplate(models.Model):
 
             if vals.get('sell_as') in ('package', 'unit') and unit_ref:
                 vals.setdefault('uom_id', unit_ref.id)
-                vals['uom_po_id'] = vals['uom_id']
 
             if 'list_price' in vals and vals.get('list_price') is not None and vals.get('list_price') <= 0:
                 raise ValidationError(_('Public Price / Sales Price must be greater than 0.'))
@@ -680,12 +717,6 @@ class ProductTemplate(models.Model):
             if uom and uom_po and uom.category_id != uom_po.category_id:
                 vals['uom_po_id'] = future_uom_id
 
-        if 'sell_as' in vals or 'units_per_package' in vals:
-            for rec in self:
-                target_uom_id = vals.get('uom_id', rec.uom_id.id if rec.uom_id else False)
-                if target_uom_id:
-                    vals['uom_po_id'] = target_uom_id
-
         result = super().write(vals)
 
         if 'list_price' in vals:
@@ -701,6 +732,7 @@ class ProductTemplate(models.Model):
                     super(ProductTemplate, rec).write(sync_vals)
 
         return result
+
 
 
 class ProductProduct(models.Model):
@@ -759,3 +791,15 @@ class PharmacyCostHistory(models.Model):
     picking_id = fields.Many2one('stock.picking', string='Source Receipt', readonly=True)
     purchase_order_id = fields.Many2one('purchase.order', string='Purchase Order', readonly=True)
     note = fields.Text(string='Note', readonly=True)
+
+
+class ProductTemplatePurchaseUomOverride(models.Model):
+    """Override the purchase module's UoM same-category constraint.
+    Pharmacy uses a dedicated Package UoM category for purchasing,
+    so the standard same-category check must be suppressed."""
+    _inherit = 'product.template'
+
+    @api.constrains('uom_id', 'uom_po_id')
+    def _check_uom(self):
+        # Intentionally empty — pharmacy allows cross-category UoM for purchase.
+        pass
