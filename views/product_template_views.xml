@@ -38,6 +38,18 @@
         </field>
     </record>
 
+    <!-- Force hide package_uom_id everywhere in product.template form -->
+    <record id="pharmacy_hide_package_uom" model="ir.ui.view">
+        <field name="name">product.template.hide.package.uom</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='package_uom_id']" position="attributes">
+                <attribute name="invisible">True</attribute>
+            </xpath>
+        </field>
+    </record>
+
     <record id="pharmacy_product_list_view" model="ir.ui.view">
         <field name="name">product.template.pharmacy.list</field>
         <field name="model">product.template</field>
@@ -64,6 +76,17 @@
                 <field name="classification" widget="radio" options="{'horizontal': true}"/>
             </xpath>
 
+            <!-- UC-01: show Generic Name directly under the product title -->
+            <xpath expr="//div[hasclass('oe_title')]" position="inside">
+                <div class="o_row mt-2">
+                    <label for="generic_name" string="Generic Name:" class="fw-bold text-uppercase me-2"/>
+                    <field name="generic_name"
+                           nolabel="1"
+                           class="oe_inline"
+                           placeholder="e.g. Paracetamol, Amoxicillin ..."/>
+                </div>
+            </xpath>
+
             <!-- Sales Price -->
             <xpath expr="//label[@for='list_price']" position="replace">
                 <label for="list_price" string="Sales Price"/>
@@ -87,7 +110,9 @@
                     <group col="2" colspan="2">
                         <group>
                             <field name="sell_as" widget="radio" options="{'horizontal': true}"/>
-                            <field name="units_per_package"/>\n                            <field name="package_uom_id" readonly="1"/>\n                            <field name="display_stock" readonly="1"/>
+                            <field name="units_per_package"/>
+                            <field name="package_uom_id" readonly="1" invisible="True"/>
+                            <field name="display_stock" readonly="1"/>
                             <field name="commission_pct"/>
                         </group>
                         <group/>
@@ -183,6 +208,7 @@
         <field name="inherit_id" ref="product.product_template_tree_view"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='name']" position="after">
+                <field name="generic_name" optional="show"/>
                 <field name="classification" optional="show"/>
                 <field name="is_low_stock" optional="show"/>
                 <field name="low_stock_limit" optional="hide"/>
@@ -271,8 +297,6 @@
         <field name="res_model">pharmacy.low.stock.override.log</field>
         <field name="view_mode">list</field>
     </record>
-
-
 
     <record id="pharmacy_price_history_list_view" model="ir.ui.view">
         <field name="name">pharmacy.price.history.list</field>

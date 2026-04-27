@@ -8,6 +8,9 @@
         <field name="arch" type="xml">
 
             <xpath expr="//search" position="inside">
+                <field name="generic_name"
+                       string="Generic Name"
+                       filter_domain="[('generic_name', 'ilike', self)]"/>
                 <separator/>
                 <filter string="Medicines" name="filter_medicine"
                         domain="[('classification', '=', 'medicine')]"/>

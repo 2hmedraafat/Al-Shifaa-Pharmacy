@@ -1,10 +1,62 @@
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
+from odoo.osv import expression
 
 
 class ProductTemplate(models.Model):
     _inherit = 'product.template'
 
+
+
+    # ══════════════════════════════════════════════════════════════════════
+    # UC-01 — Basic Product Information
+    # ══════════════════════════════════════════════════════════════════════
+    generic_name = fields.Char(
+        string='Generic Name',
+        tracking=True,
+        index=True,
+        help='Scientific / INN name of the medicine, e.g. Paracetamol or Amoxicillin.',
+    )
+
+    def _get_duplicate_name_domain(self, name):
+        domain = [('name', '=ilike', (name or '').strip())]
+        if self._origin and self._origin.id:
+            domain.append(('id', '!=', self._origin.id))
+        return domain
+
+    @api.onchange('name')
+    def _onchange_name_duplicate_warning(self):
+        for rec in self:
+            if not rec.name or not rec.name.strip():
+                continue
+
+            duplicate = self.env['product.template'].search(
+                rec._get_duplicate_name_domain(rec.name),
+                limit=1,
+            )
+            if duplicate:
+                return {
+                    'warning': {
+                        'title': _('Duplicate Product Name'),
+                        'message': _(
+                            'A product with the same name already exists: "%s". '
+                            'You can continue if this is intentional.'
+                        ) % duplicate.display_name,
+                    }
+                }
+
+    @api.model
+    def _name_search(self, name='', args=None, operator='ilike', limit=100, name_get_uid=None, order=None):
+        args = list(args or [])
+        if not name:
+            return super()._name_search(name=name, args=args, operator=operator, limit=limit, name_get_uid=name_get_uid, order=order)
+
+        search_domain = ['|', '|',
+            ('name', operator, name),
+            ('default_code', operator, name),
+            ('generic_name', operator, name),
+        ]
+        return self._search(expression.AND([args, search_domain]), limit=limit, access_rights_uid=name_get_uid, order=order)
 
     def _get_matching_purchase_uom(self, unit_uom=None):
         self.ensure_one()
@@ -738,11 +790,32 @@ class ProductTemplate(models.Model):
 class ProductProduct(models.Model):
     _inherit = 'product.product'
 
+    generic_name = fields.Char(
+        related='product_tmpl_id.generic_name',
+        string='Generic Name',
+        store=True,
+        readonly=False,
+    )
+
     is_scheduled_medicine = fields.Boolean(
         related='product_tmpl_id.is_scheduled_medicine',
         string='Medicine is Scheduled',
         store=True
     )
+
+    @api.model
+    def _name_search(self, name='', args=None, operator='ilike', limit=100, name_get_uid=None, order=None):
+        args = list(args or [])
+        if not name:
+            return super()._name_search(name=name, args=args, operator=operator, limit=limit, name_get_uid=name_get_uid, order=order)
+
+        search_domain = ['|', '|', '|',
+            ('name', operator, name),
+            ('default_code', operator, name),
+            ('barcode', operator, name),
+            ('product_tmpl_id.generic_name', operator, name),
+        ]
+        return self._search(expression.AND([args, search_domain]), limit=limit, access_rights_uid=name_get_uid, order=order)
 
 
 class PharmacyLowStockOverrideLog(models.Model):
