@@ -5,10 +5,10 @@ class PosSession(models.Model):
     _inherit = 'pos.session'
 
     def _loader_params_product_product(self):
-        """
-        إضافة is_scheduled_medicine للـ POS
-        عشان الـ JS يعرف الدواء Scheduled ولا لأ
-        """
+        """Load pharmacy fields used by POS custom barcode rules."""
         result = super()._loader_params_product_product()
-        result['search_params']['fields'].append('is_scheduled_medicine')
+        fields = result['search_params']['fields']
+        for field_name in ['barcode', 'display_name', 'is_scheduled_medicine']:
+            if field_name not in fields:
+                fields.append(field_name)
         return result

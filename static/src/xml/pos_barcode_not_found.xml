@@ -1,25 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates id="template" xml:space="preserve">
-    <t t-name="pharmacy.BarcodeNotFoundDialog">
-        <Dialog title.translate="Barcode Not Found">
+    <t t-name="pharmacy.SharedBarcodeProductDialog">
+        <Dialog title.translate="Shared Barcode Detected">
             <div class="p-3">
                 <p class="mb-3">
-                    Barcode <strong t-esc="props.barcode"/> was not found in the system.
+                    Barcode <strong t-esc="props.barcode"/> is assigned to more than one product.
                 </p>
-                <p class="text-muted mb-4">What would you like to do?</p>
+                <p class="text-muted mb-3">Choose the correct product to add to the order.</p>
 
-                <div class="d-grid gap-2">
-                    <button class="btn btn-primary" t-on-click="onCreateNew">
-                        Create New Product
-                    </button>
-                    <button class="btn btn-secondary" t-on-click="onLinkExisting">
-                        Link to Existing Product
-                    </button>
-                    <button class="btn btn-outline-secondary" t-on-click="onCancel">
-                        Cancel
+                <div class="list-group">
+                    <button t-foreach="props.products"
+                            t-as="product"
+                            t-key="product.id"
+                            type="button"
+                            class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                            t-on-click="() => this.onSelect(product)">
+                        <span t-esc="product.display_name"/>
+                        <span class="badge text-bg-secondary" t-esc="product.lst_price"/>
                     </button>
                 </div>
             </div>
+            <t t-set-slot="footer">
+                <button class="btn btn-secondary" t-on-click="props.close">Cancel</button>
+            </t>
         </Dialog>
     </t>
 </templates>

@@ -1,5 +1,4 @@
 from odoo import models, fields, api, _
-from odoo.exceptions import ValidationError
 
 
 class PharmacyProductBarcode(models.Model):
@@ -30,24 +29,10 @@ class PharmacyProductBarcode(models.Model):
 
     @api.constrains('barcode')
     def _check_barcode_unique(self):
-        for rec in self:
-            # Check duplicates inside sub-table itself
-            duplicate = self.search([
-                ('barcode', '=', rec.barcode),
-                ('id', '!=', rec.id)
-            ])
-            if duplicate:
-                raise ValidationError(
-                    _('Barcode "%s" already exists on product: "%s".')
-                    % (rec.barcode, duplicate[0].product_id.name)
-                )
-            # Check against primary barcode of any other product
-            product = self.env['product.template'].search([
-                ('barcode', '=', rec.barcode),
-                ('id', '!=', rec.product_id.id)
-            ])
-            if product:
-                raise ValidationError(
-                    _('Barcode "%s" is already used as the primary barcode of product: "%s".')
-                    % (rec.barcode, product[0].name)
-                )
+        """Allow shared barcodes.
+
+        The pharmacy workflow intentionally allows the same barcode to be
+        registered on more than one product/variant. Keep this method empty so
+        extra barcodes do not block saving; the POS dialog handles selection.
+        """
+        return True

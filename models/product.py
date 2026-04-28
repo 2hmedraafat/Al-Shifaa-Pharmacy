@@ -276,6 +276,44 @@ class ProductTemplate(models.Model):
     )
 
     # ══════════════════════════════════════════════════════════════════════
+    # UC-03 — Same Barcode For Different Variants / Products
+    # Soft warning only. Duplicates are allowed so POS can ask the cashier
+    # which product/variant should be added when the shared barcode is scanned.
+    # ══════════════════════════════════════════════════════════════════════
+    def _get_barcode_duplicate_product(self):
+        self.ensure_one()
+        if not self.barcode:
+            return False
+
+        duplicate_variant = self.env['product.product'].search([
+            ('barcode', '=', self.barcode),
+            ('product_tmpl_id', '!=', self.id),
+        ], limit=1)
+        if duplicate_variant:
+            return duplicate_variant.display_name
+
+        duplicate_template = self.env['product.template'].search([
+            ('barcode', '=', self.barcode),
+            ('id', '!=', self.id),
+        ], limit=1)
+        return duplicate_template.display_name if duplicate_template else False
+
+    @api.onchange('barcode')
+    def _onchange_barcode_soft_duplicate_warning(self):
+        for rec in self:
+            duplicate_name = rec._get_barcode_duplicate_product() if rec.barcode else False
+            if duplicate_name:
+                return {
+                    'warning': {
+                        'title': _('Duplicate Barcode'),
+                        'message': _(
+                            'Barcode "%s" is already used on "%s". '
+                            'You can continue; POS will show a product selection dialog when this barcode is scanned.'
+                        ) % (rec.barcode, duplicate_name),
+                    }
+                }
+
+    # ══════════════════════════════════════════════════════════════════════
     # VALIDATIONS
     # ══════════════════════════════════════════════════════════════════════
     @api.constrains('list_price')
@@ -830,6 +868,65 @@ class ProductProduct(models.Model):
         string='Medicine is Scheduled',
         store=True
     )
+
+    def _check_barcode_uniqueness(self):
+        """Disable standard Odoo duplicate-barcode validation.
+
+        Odoo product.product normally blocks saving the same barcode on more
+        than one product/variant with: "Barcode(s) already assigned".
+        Pharmacy needs duplicate/shared barcodes, so the validation is relaxed
+        and only POS will ask the cashier which product to sell.
+        """
+        return True
+
+    def init(self):
+        """Relax Odoo barcode uniqueness at database level.
+
+        Standard Odoo prevents using the same barcode more than once.
+        Pharmacy needs the same barcode on different variants/products, so we
+        drop barcode unique constraints created by the base product module.
+        """
+        super().init()
+        self.env.cr.execute("""
+            SELECT c.conrelid::regclass::text AS table_name, c.conname
+              FROM pg_constraint c
+             WHERE c.contype = 'u'
+               AND c.conrelid IN ('product_product'::regclass, 'product_template'::regclass)
+               AND EXISTS (
+                    SELECT 1
+                      FROM unnest(c.conkey) AS key(attnum)
+                      JOIN pg_attribute a
+                        ON a.attrelid = c.conrelid
+                       AND a.attnum = key.attnum
+                     WHERE a.attname = 'barcode'
+               )
+        """)
+        for table_name, constraint_name in self.env.cr.fetchall():
+            safe_table = table_name.replace('\"', '\"\"')
+            safe_constraint = constraint_name.replace('\"', '\"\"')
+            self.env.cr.execute(
+                'ALTER TABLE "%s" DROP CONSTRAINT IF EXISTS "%s"' % (safe_table, safe_constraint)
+            )
+
+    @api.onchange('barcode')
+    def _onchange_barcode_soft_duplicate_warning(self):
+        for rec in self:
+            if not rec.barcode:
+                continue
+            duplicate = self.search([
+                ('barcode', '=', rec.barcode),
+                ('id', '!=', rec._origin.id or 0),
+            ], limit=1)
+            if duplicate:
+                return {
+                    'warning': {
+                        'title': _('Duplicate Barcode'),
+                        'message': _(
+                            'Barcode "%s" is already used on "%s". '
+                            'You can continue; POS will ask the cashier to choose the correct product.'
+                        ) % (rec.barcode, duplicate.display_name),
+                    }
+                }
 
     @api.model
     def _name_search(self, name='', args=None, operator='ilike', limit=100, name_get_uid=None, order=None):
