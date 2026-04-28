@@ -163,8 +163,36 @@ class ProductTemplate(models.Model):
         string='Commission %',
         digits=(5, 2),
         default=0.0,
-        help='Commission percentage per product. 0 = no commission.',
+        help='Commission percentage per product. 0 = no commission. Maximum allowed is 50%.',
     )
+
+    @api.constrains("commission_pct")
+    def _check_commission_pct_limit(self):
+        for rec in self:
+            if rec.commission_pct < 0:
+                raise ValidationError(_("Commission percentage cannot be less than 0%."))
+            if rec.commission_pct > 50:
+                raise ValidationError(_("Commission percentage cannot be more than 50%."))
+
+    @api.onchange("commission_pct")
+    def _onchange_commission_pct_limit(self):
+        for rec in self:
+            if rec.commission_pct and rec.commission_pct > 50:
+                rec.commission_pct = 50
+                return {
+                    "warning": {
+                        "title": _("Commission Limit"),
+                        "message": _("Maximum commission percentage is 50%."),
+                    }
+                }
+            if rec.commission_pct and rec.commission_pct < 0:
+                rec.commission_pct = 0
+                return {
+                    "warning": {
+                        "title": _("Commission Limit"),
+                        "message": _("Commission percentage cannot be less than 0%."),
+                    }
+                }
 
     # ══════════════════════════════════════════════════════════════════════
     # UC-10 — Max Qty Per Invoice (Hard Block)

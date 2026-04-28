@@ -88,12 +88,15 @@ class SaleOrderLine(models.Model):
             package_uom = tmpl.package_uom_id or tmpl.sudo()._sync_package_uom()
             unit_uom = tmpl.uom_id
 
-            if tmpl.sell_as == 'unit' and unit_uom:
-                line.product_uom = unit_uom
-                line.price_unit = tmpl.unit_price
-            elif package_uom:
+            # Default in Sales must be Package whenever the product has a package UoM.
+            # If Sell As = Unit, Package + Unit are still allowed, but cashier starts with Package
+            # and can manually change it to Unit from the UoM dropdown.
+            if package_uom:
                 line.product_uom = package_uom
                 line.price_unit = tmpl.list_price
+            elif unit_uom:
+                line.product_uom = unit_uom
+                line.price_unit = tmpl.unit_price
 
     @api.onchange('product_uom')
     def _onchange_set_price_by_uom(self):
