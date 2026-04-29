@@ -1,11 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <!-- SC2-UC-02
-         Top field: user enters MM/YYYY.
-         Native dates tab: Odoo dates are filled automatically with the last day of that month.
-    -->
+    <!-- SC2-UC-02: Month/Year expiry input on Lot/Serial form and Receipt detailed operations. -->
 
-    <!-- Put the MM/YYYY input under Product on the Lot form. -->
+    <!-- Lot/Serial Number form: top MM/YYYY input under Product. Native Dates tab stays visible and is updated by models/stock_lot.py. -->
     <record id="view_stock_lot_form_month_year_expiry" model="ir.ui.view">
         <field name="name">stock.lot.form.month.year.expiry</field>
         <field name="model">stock.lot</field>
@@ -14,13 +11,14 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='product_id']" position="after">
                 <field name="pharmacy_expiry_month_year"
+                       string="Expiration Date"
                        widget="pharmacy_month_year_expiry"
                        placeholder="MM/YYYY"/>
             </xpath>
         </field>
     </record>
 
-    <!-- If an older file created this extra view, make it harmless to avoid duplicate fields. -->
+    <!-- Disable old duplicate view id if it exists from a previous iteration. -->
     <record id="view_stock_lot_form_pharmacy_month_year_expiry" model="ir.ui.view">
         <field name="name">stock.lot.form.pharmacy.month.year.expiry.disabled</field>
         <field name="model">stock.lot</field>
@@ -28,6 +26,42 @@
         <field name="active" eval="False"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='product_id']" position="after"/>
+        </field>
+    </record>
+
+    <!-- Receipt operations list: replace Odoo's native expiration_date column with MM/YYYY input.
+         IMPORTANT: inherit the base stock view with high priority so Odoo first applies product_expiry,
+         then this view can safely replace the expiration_date field. -->
+    <record id="view_stock_move_line_operation_tree_pharmacy_month_year_expiry" model="ir.ui.view">
+        <field name="name">stock.move.line.operation.tree.pharmacy.month.year.expiry</field>
+        <field name="model">stock.move.line</field>
+        <field name="inherit_id" ref="stock.view_stock_move_line_operation_tree"/>
+        <field name="priority">300</field>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='expiration_date']" position="replace">
+                <field name="pharmacy_expiry_month_year"
+                       string="Expiration Date"
+                       widget="pharmacy_month_year_expiry"
+                       placeholder="MM/YYYY"
+                       force_save="1"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Detailed Operations popup used from Receipts / Transfers. -->
+    <record id="view_stock_move_line_detailed_operation_tree_pharmacy_month_year_expiry" model="ir.ui.view">
+        <field name="name">stock.move.line.detailed.operation.tree.pharmacy.month.year.expiry</field>
+        <field name="model">stock.move.line</field>
+        <field name="inherit_id" ref="stock.view_stock_move_line_detailed_operation_tree"/>
+        <field name="priority">300</field>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='expiration_date']" position="replace">
+                <field name="pharmacy_expiry_month_year"
+                       string="Expiration Date"
+                       widget="pharmacy_month_year_expiry"
+                       placeholder="MM/YYYY"
+                       force_save="1"/>
+            </xpath>
         </field>
     </record>
 </odoo>
