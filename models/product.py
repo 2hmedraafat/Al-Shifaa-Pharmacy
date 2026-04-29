@@ -258,6 +258,37 @@ class ProductTemplate(models.Model):
         groups='pharmacy.group_pharmacy_manager,pharmacy.group_pharmacy_pharmacist',
     )
 
+    # SC1-UC-01 - Auto-Update Last Purchase Discount
+    last_purchase_discount = fields.Float(
+        string="Last Purchase Discount %",
+        digits=(5, 2),
+        readonly=True,
+        tracking=True,
+        groups="pharmacy.group_pharmacy_manager,pharmacy.group_pharmacy_pharmacist",
+        help="Latest discount percentage captured automatically from the posted supplier invoice.",
+    )
+
+    last_purchase_discount_date = fields.Date(
+        string="Last Discount Invoice Date",
+        readonly=True,
+        tracking=True,
+        groups="pharmacy.group_pharmacy_manager,pharmacy.group_pharmacy_pharmacist",
+    )
+
+    last_purchase_discount_move_id = fields.Many2one(
+        "account.move",
+        string="Last Discount Supplier Invoice",
+        readonly=True,
+        groups="pharmacy.group_pharmacy_manager,pharmacy.group_pharmacy_pharmacist",
+    )
+
+    last_purchase_discount_supplier_id = fields.Many2one(
+        "res.partner",
+        string="Last Discount Supplier",
+        readonly=True,
+        groups="pharmacy.group_pharmacy_manager,pharmacy.group_pharmacy_pharmacist",
+    )
+
     # ══════════════════════════════════════════════════════════════════════
     # UC-07 — Public Price Control
     # ══════════════════════════════════════════════════════════════════════
