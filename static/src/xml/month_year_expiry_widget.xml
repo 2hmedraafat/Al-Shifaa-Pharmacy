@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pharmacy.MonthYearExpiryField">
+        <t t-if="props.readonly">
+            <span t-esc="state.displayValue"/>
+        </t>
+        <t t-else="">
+            <input type="text"
+                   class="o_input"
+                   placeholder="MM/YYYY"
+                   maxlength="7"
+                   t-att-value="state.displayValue"
+                   t-on-input="onInput"
+                   t-on-change="onChange"/>
+        </t>
+    </t>
+</templates>

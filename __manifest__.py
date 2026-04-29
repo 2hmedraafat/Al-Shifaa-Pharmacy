@@ -3,7 +3,7 @@
     'version': '18.0.1.0.0',
     'category': 'Pharmacy',
     'license': 'LGPL-3',
-    'depends': ['product', 'stock', 'point_of_sale', 'mail', 'sale_management', 'purchase', 'account'],
+    'depends': ['product', 'stock', 'product_expiry', 'point_of_sale', 'mail', 'sale_management', 'purchase', 'account'],
     'data': [
         'security/pharmacy_groups.xml',
         'security/ir.model.access.csv',
@@ -20,6 +20,7 @@
         'views/product_search_views.xml',
         'views/purchase_order_views.xml',
         'views/commission_report_views.xml',
+        'views/stock_lot_expiry_views.xml',
 
         'wizard/bulk_price_update_wizard_views.xml',
         'wizard/scheduled_medicine_sale_confirm_views.xml',
@@ -30,6 +31,10 @@
         'views/menus.xml',
     ],
     'assets': {
+        'web.assets_backend': [
+            'pharmacy/static/src/js/month_year_expiry_widget.js',
+            'pharmacy/static/src/xml/month_year_expiry_widget.xml',
+        ],
         'point_of_sale._assets_pos': [
             'pharmacy/static/src/js/pos_pharmacist_auth.js',
             'pharmacy/static/src/js/pos_barcode_not_found.js',
