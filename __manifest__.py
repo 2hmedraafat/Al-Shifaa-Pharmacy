@@ -24,6 +24,7 @@
 
         'wizard/bulk_price_update_wizard_views.xml',
         'wizard/scheduled_medicine_sale_confirm_views.xml',
+        'wizard/sale_product_suggestion_wizard_views.xml',
 
         'report/product_classification_report.xml',
         'report/product_classification_report_template.xml',
@@ -38,8 +39,10 @@
         'point_of_sale._assets_pos': [
             'pharmacy/static/src/js/pos_pharmacist_auth.js',
             'pharmacy/static/src/js/pos_barcode_not_found.js',
+            'pharmacy/static/src/js/pos_product_suggestions.js',
             'pharmacy/static/src/xml/pos_pharmacist_auth.xml',
             'pharmacy/static/src/xml/pos_barcode_not_found.xml',
+            'pharmacy/static/src/xml/pos_product_suggestions.xml',
         ],
     },
     'installable': True,

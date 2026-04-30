@@ -27,3 +27,6 @@ access_pharmacy_price_history_price_manager,pharmacy.price.history.price.manager
 access_pharmacy_bulk_price_update_wizard,pharmacy.bulk.price.update.wizard,model_pharmacy_bulk_price_update_wizard,pharmacy.group_pharmacy_price_manager,1,1,1,1
 access_pharmacy_bulk_price_update_wizard_manager,pharmacy.bulk.price.update.wizard.manager,model_pharmacy_bulk_price_update_wizard,pharmacy.group_pharmacy_manager,1,1,1,1
 access_sale_scheduled_medicine_confirm_wizard,sale.scheduled.medicine.confirm.wizard,model_sale_scheduled_medicine_confirm_wizard,base.group_user,1,1,1,1
+access_pharmacy_product_suggestion_user,pharmacy.product.suggestion.user,model_pharmacy_product_suggestion,base.group_user,1,1,1,1
+access_sale_product_suggestion_wizard_user,sale.product.suggestion.wizard.user,model_sale_product_suggestion_wizard,base.group_user,1,1,1,1
+access_sale_product_suggestion_wizard_line_user,sale.product.suggestion.wizard.line.user,model_sale_product_suggestion_wizard_line,base.group_user,1,1,1,1

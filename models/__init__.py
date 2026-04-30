@@ -10,3 +10,4 @@ from . import commission_report
 from . import product_price_history
 from . import stock_lot
 from . import account_move
+from . import product_suggestion

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pharmacy.ProductSuggestionsDialog">
+        <Dialog title.translate="Product Suggestions">
+            <div class="p-3">
+                <p class="mb-2">
+                    Suggestions for <strong t-esc="props.productName"/>.
+                </p>
+                <p class="text-muted mb-3">
+                    Select the products you want to add to the current POS order.
+                </p>
+
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Add</th>
+                                <th>Type</th>
+                                <th>Product</th>
+                                <th class="text-end">Price</th>
+                                <th>Note</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="state.suggestions" t-as="suggestion" t-key="suggestion.id" t-att-class="suggestion.available ? '' : 'text-muted'">
+                                <td>
+                                    <input type="checkbox"
+                                           class="form-check-input"
+                                           t-att-checked="suggestion.selected"
+                                           t-att-disabled="!suggestion.available"
+                                           t-on-change="(ev) => this.toggleSuggestion(suggestion, ev)"/>
+                                </td>
+                                <td><span class="badge text-bg-info" t-esc="suggestion.type_label"/></td>
+                                <td>
+                                    <strong t-esc="suggestion.product_name"/>
+                                    <div t-if="!suggestion.available" class="small text-danger" t-esc="suggestion.unavailable_reason"/>
+                                </td>
+                                <td class="text-end" t-esc="suggestion.price"/>
+                                <td class="small text-muted" t-esc="suggestion.note"/>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <t t-set-slot="footer">
+                <button class="btn btn-primary" t-on-click="this.addSelected">Add Selected Products</button>
+                <button class="btn btn-secondary" t-on-click="this.closeDialog">Cancel</button>
+            </t>
+        </Dialog>
+    </t>
+</templates>

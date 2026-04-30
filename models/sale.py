@@ -343,3 +343,52 @@ class SaleOrder(models.Model):
         for order in self:
             order.order_line._log_low_stock_override()
         return res
+
+class SaleOrderProductSuggestions(models.Model):
+    _inherit = 'sale.order'
+
+    def action_open_product_suggestions(self):
+        self.ensure_one()
+
+        existing_template_ids = set(self.order_line.mapped('product_id.product_tmpl_id').ids)
+        suggestions = self.env['pharmacy.product.suggestion']
+
+        for order_line in self.order_line.filtered('product_id'):
+            product_tmpl = order_line.product_id.product_tmpl_id
+            suggestions |= product_tmpl.suggestion_ids.filtered(
+                lambda s: s.suggested_product_tmpl_id
+                and s.suggested_product_tmpl_id.id not in existing_template_ids
+            )
+
+        # Remove duplicates while keeping order.
+        unique_suggestions = self.env['pharmacy.product.suggestion']
+        seen_keys = set()
+        for suggestion in suggestions:
+            key = (suggestion.suggested_product_tmpl_id.id, suggestion.suggestion_type)
+            if key in seen_keys:
+                continue
+            seen_keys.add(key)
+            unique_suggestions |= suggestion
+
+        if not unique_suggestions:
+            raise ValidationError(_('No product suggestions found for the current order lines.'))
+
+        wizard = self.env['sale.product.suggestion.wizard'].create({
+            'sale_order_id': self.id,
+            'line_ids': [(0, 0, {
+                'selected': True,
+                'suggestion_type': suggestion.suggestion_type,
+                'base_product_tmpl_id': suggestion.product_tmpl_id.id,
+                'suggested_product_tmpl_id': suggestion.suggested_product_tmpl_id.id,
+                'note': suggestion.note,
+            }) for suggestion in unique_suggestions],
+        })
+
+        return {
+            'name': _('Product Suggestions'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'sale.product.suggestion.wizard',
+            'view_mode': 'form',
+            'res_id': wizard.id,
+            'target': 'new',
+        }
