@@ -28,9 +28,15 @@ class PharmacyExpiryDashboard(models.TransientModel):
         return warning_days, critical_days
 
     def _base_lot_domain(self):
+        internal_lot_ids = self.env['stock.quant'].sudo().search([
+            ('lot_id', '!=', False),
+            ('quantity', '>', 0),
+            ('location_id.usage', '=', 'internal'),
+            ('product_id.product_tmpl_id.classification', '=', 'medicine'),
+        ]).mapped('lot_id').ids
         return [
+            ('id', 'in', internal_lot_ids),
             ('expiration_date', '!=', False),
-            ('product_qty', '>', 0),
             ('product_id.product_tmpl_id.classification', '=', 'medicine'),
         ]
 

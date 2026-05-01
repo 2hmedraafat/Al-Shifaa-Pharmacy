@@ -1,12 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <record id="ir_cron_pharmacy_expiry_activities" model="ir.cron">
-        <field name="name">Pharmacy Expiry Alert Activities</field>
+    <record id="ir_cron_pharmacy_near_expiry_activities" model="ir.cron">
+        <field name="name">Pharmacy: Near-Expiry Lot Warning Activities</field>
         <field name="model_id" ref="stock.model_stock_lot"/>
         <field name="state">code</field>
-        <field name="code">model.action_create_expiry_activities()</field>
+        <field name="code">model.action_create_near_expiry_activities()</field>
         <field name="interval_number">1</field>
         <field name="interval_type">days</field>
         <field name="active" eval="True"/>
+        <field name="nextcall" eval="(DateTime.now() + relativedelta(days=1)).replace(hour=1, minute=30, second=0).strftime('%Y-%m-%d %H:%M:%S')"/>
+    </record>
+
+    <record id="ir_cron_pharmacy_expired_lot_detection" model="ir.cron">
+        <field name="name">Pharmacy: Nightly Expired Lot Detection</field>
+        <field name="model_id" ref="stock.model_stock_lot"/>
+        <field name="state">code</field>
+        <field name="code">model.action_detect_expired_lots_notify_inventory_manager()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="active" eval="True"/>
+        <field name="nextcall" eval="(DateTime.now() + relativedelta(days=1)).replace(hour=2, minute=0, second=0).strftime('%Y-%m-%d %H:%M:%S')"/>
+    </record>
+
+    <!-- Keep old cron XML ID upgraded safely if it already exists from previous versions. -->
+    <record id="ir_cron_pharmacy_expiry_activities" model="ir.cron">
+        <field name="name">Pharmacy: Nightly Expired Lot Detection</field>
+        <field name="model_id" ref="stock.model_stock_lot"/>
+        <field name="state">code</field>
+        <field name="code">model.action_detect_expired_lots_notify_inventory_manager()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="active" eval="False"/>
     </record>
 </odoo>
