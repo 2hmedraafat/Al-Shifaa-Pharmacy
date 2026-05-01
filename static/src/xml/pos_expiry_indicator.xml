@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pharmacy.PosExpiryProductCardIndicator"
+       t-inherit="point_of_sale.ProductCard"
+       t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('product-content')]" position="after">
+            <t t-set="expiryState"
+               t-value="props.product?.pharmacy_expiry_alert_state
+                        || props.product?.raw?.pharmacy_expiry_alert_state
+                        || props.product?._raw?.pharmacy_expiry_alert_state
+                        || props.product?.data?.pharmacy_expiry_alert_state"/>
+            <t t-set="nearestExpiry"
+               t-value="props.product?.pharmacy_nearest_expiry_date
+                        || props.product?.raw?.pharmacy_nearest_expiry_date
+                        || props.product?._raw?.pharmacy_nearest_expiry_date
+                        || props.product?.data?.pharmacy_nearest_expiry_date"/>
+            <div t-if="['expired', 'critical', 'near'].includes(expiryState)"
+                 t-att-class="'pharmacy-pos-expiry-badge pharmacy-pos-expiry-badge-' + expiryState"
+                 t-att-title="nearestExpiry ? ('Nearest expiry: ' + nearestExpiry) : 'Expiry warning'">
+                <span class="pharmacy-pos-expiry-icon">⏰</span>
+                <span t-if="expiryState === 'expired'">Expired</span>
+                <span t-elif="expiryState === 'critical'">Critical</span>
+                <span t-elif="expiryState === 'near'">Near Expiry</span>
+            </div>
+        </xpath>
+    </t>
+</templates>

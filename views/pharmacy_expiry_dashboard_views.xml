@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_pharmacy_expiry_dashboard_form" model="ir.ui.view">
+        <field name="name">pharmacy.expiry.dashboard.form</field>
+        <field name="model">pharmacy.expiry.dashboard</field>
+        <field name="arch" type="xml">
+            <form string="Expiry Alerts Dashboard" create="0" edit="0" delete="0">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>Expiry Alerts Dashboard</h1>
+                        <p class="text-muted">
+                            Current thresholds:
+                            <strong><field name="warning_days" readonly="1" class="oe_inline"/> days</strong>
+                            near-expiry and
+                            <strong><field name="critical_days" readonly="1" class="oe_inline"/> days</strong>
+                            critical.
+                        </p>
+                    </div>
+                    <group col="4">
+                        <button name="action_open_expired_lots" type="object" class="oe_stat_button" icon="fa-times-circle">
+                            <field name="expired_lot_count" widget="statinfo" string="Expired"/>
+                        </button>
+                        <button name="action_open_critical_lots" type="object" class="oe_stat_button" icon="fa-clock-o">
+                            <field name="critical_lot_count" widget="statinfo" string="Critical"/>
+                        </button>
+                        <button name="action_open_near_lots" type="object" class="oe_stat_button" icon="fa-exclamation-triangle">
+                            <field name="near_lot_count" widget="statinfo" string="Near Expiry"/>
+                        </button>
+                        <button name="action_open_all_alert_lots" type="object" class="oe_stat_button" icon="fa-list">
+                            <field name="total_alert_lot_count" widget="statinfo" string="Total Alerts"/>
+                        </button>
+                    </group>
+                    <div class="alert alert-info mt-3" role="alert">
+                        Click any card to open the related lots with remaining stock.
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_pharmacy_expiry_dashboard_server" model="ir.actions.server">
+        <field name="name">Expiry Alerts Dashboard</field>
+        <field name="model_id" ref="model_pharmacy_expiry_dashboard"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_open_dashboard()</field>
+    </record>
+
+    <menuitem id="menu_pharmacy_expiry_dashboard"
+              name="Expiry Alerts Dashboard"
+              parent="menu_pharmacy_reports"
+              action="action_pharmacy_expiry_dashboard_server"
+              sequence="5"/>
+</odoo>

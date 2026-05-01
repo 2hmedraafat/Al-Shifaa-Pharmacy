@@ -900,6 +900,99 @@ class ProductProduct(models.Model):
         store=True
     )
 
+
+    # ══════════════════════════════════════════════════════════════════════
+    # SC2-UC-03 — Expiry Warning / POS Red Clock Indicator
+    # ══════════════════════════════════════════════════════════════════════
+    pharmacy_expiry_alert_state = fields.Selection([
+        ('normal', 'Normal'),
+        ('near', 'Near Expiry'),
+        ('critical', 'Critical Expiry'),
+        ('expired', 'Expired'),
+    ], string='Expiry Alert State', compute='_compute_pharmacy_expiry_alert', store=False)
+
+    pharmacy_nearest_expiry_date = fields.Date(
+        string='Nearest Expiry Date',
+        compute='_compute_pharmacy_expiry_alert',
+        store=False,
+    )
+
+    def _pharmacy_get_expiry_thresholds(self):
+        ICP = self.env['ir.config_parameter'].sudo()
+        warning_days = int(ICP.get_param('pharmacy.expiry_warning_days', 30) or 30)
+        critical_days = int(ICP.get_param('pharmacy.expiry_critical_days', 7) or 7)
+        if warning_days < 1:
+            warning_days = 30
+        if critical_days < 1:
+            critical_days = 7
+        if critical_days > warning_days:
+            critical_days = warning_days
+        return warning_days, critical_days
+
+    @api.model
+    def _load_pos_data_fields(self, config_id):
+        """Ensure Odoo 18 POS loads expiry fields on product tiles.
+
+        Some POS screens use product.product._load_pos_data_fields instead of
+        pos.session._loader_params_product_product, so we support both hooks.
+        """
+        try:
+            fields_list = list(super()._load_pos_data_fields(config_id))
+        except AttributeError:
+            fields_list = []
+
+        for field_name in [
+            'pharmacy_expiry_alert_state',
+            'pharmacy_nearest_expiry_date',
+            'is_scheduled_medicine',
+            'product_tmpl_id',
+            'barcode',
+            'display_name',
+        ]:
+            if field_name not in fields_list:
+                fields_list.append(field_name)
+        return fields_list
+
+    def _pharmacy_lot_expiry_domain(self):
+        self.ensure_one()
+        return [
+            ('product_id', '=', self.id),
+            ('expiration_date', '!=', False),
+            ('product_qty', '>', 0),
+        ]
+
+    def _compute_pharmacy_expiry_alert(self):
+        from dateutil.relativedelta import relativedelta
+
+        today = fields.Date.context_today(self)
+        warning_days, critical_days = self._pharmacy_get_expiry_thresholds()
+        warning_limit = today + relativedelta(days=warning_days)
+        critical_limit = today + relativedelta(days=critical_days)
+
+        for product in self:
+            product.pharmacy_nearest_expiry_date = False
+            product.pharmacy_expiry_alert_state = 'normal'
+
+            lot = self.env['stock.lot'].sudo().search(
+                product._pharmacy_lot_expiry_domain(),
+                order='expiration_date asc',
+                limit=1,
+            )
+            if not lot:
+                continue
+
+            expiry_date = fields.Date.to_date(lot.expiration_date)
+            product.pharmacy_nearest_expiry_date = expiry_date
+
+            if expiry_date < today:
+                product.pharmacy_expiry_alert_state = 'expired'
+            elif expiry_date <= critical_limit:
+                product.pharmacy_expiry_alert_state = 'critical'
+            elif expiry_date <= warning_limit:
+                product.pharmacy_expiry_alert_state = 'near'
+            else:
+                product.pharmacy_expiry_alert_state = 'normal'
+
     def _check_barcode_uniqueness(self):
         """Disable standard Odoo duplicate-barcode validation.
 

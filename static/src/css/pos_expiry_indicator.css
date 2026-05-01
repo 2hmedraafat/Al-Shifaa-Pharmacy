@@ -1,0 +1,61 @@
+/* SC2-UC-03 — POS expiry badge overlay only
+   IMPORTANT:
+   - This file does NOT change POS product card width.
+   - This file does NOT change POS product card height.
+   - It only puts the Expiry badge as an overlay inside the card,
+     so cards keep Odoo's original size.
+*/
+
+.product,
+article.product {
+    position: relative !important;
+}
+
+/* Expiry badge overlay — does not affect card size */
+.product .pharmacy-pos-expiry-badge,
+article.product .pharmacy-pos-expiry-badge {
+    position: absolute !important;
+    left: 8px !important;
+    bottom: 8px !important;
+
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+
+    width: fit-content !important;
+    max-width: calc(100% - 16px) !important;
+
+    margin: 0 !important;
+    padding: 3px 7px !important;
+    border-radius: 999px !important;
+
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    line-height: 1.15 !important;
+    white-space: nowrap !important;
+
+    z-index: 9999 !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.22) !important;
+}
+
+/* Red states */
+.product .pharmacy-pos-expiry-badge-expired,
+.product .pharmacy-pos-expiry-badge-critical,
+article.product .pharmacy-pos-expiry-badge-expired,
+article.product .pharmacy-pos-expiry-badge-critical {
+    background: #dc3545 !important;
+    color: #ffffff !important;
+}
+
+/* Orange state */
+.product .pharmacy-pos-expiry-badge-near,
+article.product .pharmacy-pos-expiry-badge-near {
+    background: #fd7e14 !important;
+    color: #ffffff !important;
+}
+
+.product .pharmacy-pos-expiry-icon,
+article.product .pharmacy-pos-expiry-icon {
+    font-size: 13px !important;
+    line-height: 1 !important;
+}

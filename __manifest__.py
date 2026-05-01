@@ -11,8 +11,10 @@
         'data/pharmacy_sequence.xml',
         'data/uom_data.xml',
         'data/stock_data.xml',
+        'data/expiry_alert_cron.xml',
 
         'views/product_template_views.xml',
+        'views/res_config_settings_views.xml',
         'views/pharmacy_prescription_views.xml',
         'views/pharmacy_register_views.xml',
         'views/product_views.xml',
@@ -30,6 +32,7 @@
         'report/product_classification_report_template.xml',
 
         'views/menus.xml',
+        'views/pharmacy_expiry_dashboard_views.xml',
     ],
     'assets': {
         'web.assets_backend': [
@@ -38,9 +41,11 @@
         ],
         'point_of_sale._assets_pos': [
             'pharmacy/static/src/js/pos_pharmacist_auth.js',
+            'pharmacy/static/src/css/pos_expiry_indicator.css',
             'pharmacy/static/src/js/pos_barcode_not_found.js',
             'pharmacy/static/src/js/pos_product_suggestions.js',
             'pharmacy/static/src/xml/pos_pharmacist_auth.xml',
+            'pharmacy/static/src/xml/pos_expiry_indicator.xml',
             'pharmacy/static/src/xml/pos_barcode_not_found.xml',
             'pharmacy/static/src/xml/pos_product_suggestions.xml',
         ],
