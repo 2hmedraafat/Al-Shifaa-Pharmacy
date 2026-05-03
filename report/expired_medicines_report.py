@@ -45,7 +45,7 @@ class ReportExpiredMedicinesPerBranch(models.AbstractModel):
         domain = [
             ('lot_id', '!=', False),
             ('quantity', '>', 0),
-            ('location_id.usage', '=', 'internal'),
+            ('location_id.usage', 'in', ['internal', 'expired']),
             ('product_id.product_tmpl_id.classification', '=', 'medicine'),
             ('lot_id.expiration_date', '!=', False),
             ('lot_id.expiration_date', '>=', date_from_dt),

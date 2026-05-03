@@ -12,6 +12,7 @@
         'data/uom_data.xml',
         'data/stock_data.xml',
         'data/expiry_alert_cron.xml',
+        'data/expired_location_data.xml',
 
         'views/product_template_views.xml',
         'views/res_config_settings_views.xml',
@@ -23,6 +24,7 @@
         'views/purchase_order_views.xml',
         'views/commission_report_views.xml',
         'views/stock_lot_expiry_views.xml',
+        'views/stock_location_views.xml',
 
         'wizard/bulk_price_update_wizard_views.xml',
         'wizard/scheduled_medicine_sale_confirm_views.xml',

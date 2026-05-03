@@ -14,3 +14,5 @@ from . import product_suggestion
 from . import res_config_settings
 from . import pharmacy_expiry_dashboard
 from . import pharmacy_expiry_alert
+
+from . import expired_location

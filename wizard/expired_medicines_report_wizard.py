@@ -35,9 +35,9 @@ class PharmacyExpiredMedicinesReportWizard(models.TransientModel):
     )
     branch_id = fields.Many2one(
         'stock.location',
-        string='Branch / Internal Location',
-        domain="[('usage', '=', 'internal')]",
-        help='Leave empty to include all internal branches/locations.',
+        string='Branch / Internal or Expired Location',
+        domain="[('usage', 'in', ['internal', 'expired'])]",
+        help='Leave empty to include all internal and expired audit locations.',
     )
 
     date_from = fields.Date(string='From', compute='_compute_date_range')

@@ -26,12 +26,21 @@ class PharmacySharedBarcodeProductDialog extends Component {
 patch(ProductScreen.prototype, {
     async _barcodeProductAction(code) {
         const barcode = code.base_code;
-        const products = await this.pos.data.searchRead(
+        const allProducts = await this.pos.data.searchRead(
             "product.product",
             [["barcode", "=", barcode], ["available_in_pos", "=", true]],
-            ["id", "display_name", "barcode", "lst_price", "is_scheduled_medicine"],
+            ["id", "display_name", "barcode", "lst_price", "is_scheduled_medicine", "pharmacy_saleable_qty"],
             { limit: 20 }
         );
+        const products = allProducts.filter((product) => this._pharmacyHasSaleableQty(product));
+
+        if (allProducts.length && !products.length) {
+            this.dialog.add(AlertDialog, {
+                title: _t("Expired / Not Saleable"),
+                body: _t("This barcode belongs to a product that has no saleable quantity. Expired-location stock is excluded for patient safety."),
+            });
+            return false;
+        }
 
         if (products.length > 1) {
             this.dialog.add(PharmacySharedBarcodeProductDialog, {
@@ -52,6 +61,13 @@ patch(ProductScreen.prototype, {
 
         const product = this.pos.db?.get_product_by_barcode?.(barcode);
         if (product) {
+            if (!this._pharmacyHasSaleableQty(product)) {
+                this.dialog.add(AlertDialog, {
+                    title: _t("Expired / Not Saleable"),
+                    body: _t("This product has no saleable quantity. Expired-location stock is excluded for patient safety."),
+                });
+                return false;
+            }
             return await super._barcodeProductAction(...arguments);
         }
 
@@ -61,6 +77,11 @@ patch(ProductScreen.prototype, {
         });
 
         return false;
+    },
+
+    _pharmacyHasSaleableQty(product) {
+        const qty = product?.pharmacy_saleable_qty ?? product?.raw?.pharmacy_saleable_qty;
+        return qty === undefined || qty === null || Number(qty) > 0;
     },
 
     _pharmacyGetLoadedProduct(productId) {

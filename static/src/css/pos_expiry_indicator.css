@@ -11,7 +11,7 @@ article.product {
     position: relative !important;
 }
 
-/* Expiry badge overlay — does not affect card size */
+/* Expiry badge overlay — does not affect card size. Keep z-index low so it never appears above dialogs. */
 .product .pharmacy-pos-expiry-badge,
 article.product .pharmacy-pos-expiry-badge {
     position: absolute !important;
@@ -34,7 +34,7 @@ article.product .pharmacy-pos-expiry-badge {
     line-height: 1.15 !important;
     white-space: nowrap !important;
 
-    z-index: 9999 !important;
+    z-index: 5 !important;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.22) !important;
 }
 
