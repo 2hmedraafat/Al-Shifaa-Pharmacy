@@ -31,3 +31,4 @@ access_pharmacy_product_suggestion_user,pharmacy.product.suggestion.user,model_p
 access_sale_product_suggestion_wizard_user,sale.product.suggestion.wizard.user,model_sale_product_suggestion_wizard,base.group_user,1,1,1,1
 access_sale_product_suggestion_wizard_line_user,sale.product.suggestion.wizard.line.user,model_sale_product_suggestion_wizard_line,base.group_user,1,1,1,1
 access_pharmacy_expiry_dashboard_user,pharmacy.expiry.dashboard.user,model_pharmacy_expiry_dashboard,base.group_user,1,1,1,1
+access_pharmacy_expired_medicines_report_wizard,pharmacy.expired.medicines.report.wizard,model_pharmacy_expired_medicines_report_wizard,base.group_user,1,1,1,1

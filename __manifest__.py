@@ -27,9 +27,11 @@
         'wizard/bulk_price_update_wizard_views.xml',
         'wizard/scheduled_medicine_sale_confirm_views.xml',
         'wizard/sale_product_suggestion_wizard_views.xml',
+        'wizard/expired_medicines_report_wizard_views.xml',
 
         'report/product_classification_report.xml',
         'report/product_classification_report_template.xml',
+        'report/expired_medicines_report_views.xml',
 
         'views/menus.xml',
         'views/pharmacy_expiry_dashboard_views.xml',
