@@ -73,8 +73,8 @@ class StockLotExpiredDetection(models.Model):
         base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url', '')
         action = self.env.ref('pharmacy.action_pharmacy_expired_medicines', raise_if_not_found=False)
         if action:
-            return f'{base_url}/web#action={action.id}&model=stock.lot&view_type=list'
-        return f'{base_url}/web#model=stock.lot&view_type=list'
+            return f'{base_url}/web#action={action.id}&model=stock.quant&view_type=list'
+        return f'{base_url}/web#model=stock.quant&view_type=list'
 
     @api.model
     def _pharmacy_expiry_dashboard_url(self):
