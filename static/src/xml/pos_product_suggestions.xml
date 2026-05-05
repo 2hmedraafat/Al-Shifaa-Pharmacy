@@ -17,6 +17,8 @@
                                 <th>Add</th>
                                 <th>Type</th>
                                 <th>Product</th>
+                                <th>Priority</th>
+                                <th class="text-end">Stock</th>
                                 <th class="text-end">Price</th>
                                 <th>Note</th>
                             </tr>
@@ -35,6 +37,8 @@
                                     <strong t-esc="suggestion.product_name"/>
                                     <div t-if="!suggestion.available" class="small text-danger" t-esc="suggestion.unavailable_reason"/>
                                 </td>
+                                <td class="small" t-esc="suggestion.priority"/>
+                                <td class="text-end" t-esc="suggestion.qty"/>
                                 <td class="text-end" t-esc="suggestion.price"/>
                                 <td class="small text-muted" t-esc="suggestion.note"/>
                             </tr>

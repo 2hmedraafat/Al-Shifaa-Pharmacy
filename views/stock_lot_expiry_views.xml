@@ -43,6 +43,7 @@
                        string="Expiration Date"
                        widget="pharmacy_month_year_expiry"
                        placeholder="MM/YYYY"
+                       required="lot_id or lot_name"
                        force_save="1"/>
             </xpath>
         </field>
@@ -60,6 +61,7 @@
                        string="Expiration Date"
                        widget="pharmacy_month_year_expiry"
                        placeholder="MM/YYYY"
+                       required="lot_id or lot_name"
                        force_save="1"/>
             </xpath>
         </field>

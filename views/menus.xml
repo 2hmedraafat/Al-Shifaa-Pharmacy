@@ -55,6 +55,13 @@
               groups="pharmacy.group_pharmacy_manager,stock.group_stock_manager"
               sequence="20"/>
 
+    <menuitem id="menu_inventory_expired_medicines_report"
+              name="Expired Medicines Report"
+              parent="stock.menu_warehouse_report"
+              action="action_expired_medicines_report_wizard"
+              groups="pharmacy.group_pharmacy_manager,stock.group_stock_manager"
+              sequence="4"/>
+
 
     <!-- ==================== SALES MENU (external) ==================== -->
     <menuitem id="menu_pharmacy_commission_report_sales"

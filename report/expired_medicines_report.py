@@ -18,9 +18,10 @@ class ReportExpiredMedicinesPerBranch(models.AbstractModel):
 
         date_from = fields.Date.to_date(data.get('date_from'))
         date_to = fields.Date.to_date(data.get('date_to'))
-        branch = self.env['stock.location'].browse(data.get('branch_id')).exists() if data.get('branch_id') else False
+        branches = self.env['stock.location'].browse(data.get('branch_ids') or []).exists()
 
-        lines, totals = self._get_expired_lines(date_from, date_to, branch)
+        lines, totals = self._get_expired_lines(date_from, date_to, branches)
+        generated_at = fields.Datetime.context_timestamp(self, fields.Datetime.now())
 
         return {
             'doc_ids': docids,
@@ -31,37 +32,39 @@ class ReportExpiredMedicinesPerBranch(models.AbstractModel):
             'totals': totals,
             'date_from': date_from,
             'date_to': date_to,
-            'branch': branch,
+            'branches': branches,
+            'branch_names': ', '.join(branches.mapped('display_name')) if branches else '',
             'company': self.env.company,
+            'generated_at': generated_at,
         }
 
     @api.model
-    def _get_expired_lines(self, date_from, date_to, branch=False):
+    def _get_expired_lines(self, date_from, date_to, branches):
         Quant = self.env['stock.quant'].sudo()
-        today_end = fields.Datetime.to_string(datetime.combine(fields.Date.context_today(self), time.min))
         date_from_dt = fields.Datetime.to_string(datetime.combine(date_from, time.min))
         date_to_dt = fields.Datetime.to_string(datetime.combine(date_to, time.max))
 
         domain = [
             ('lot_id', '!=', False),
             ('quantity', '>', 0),
-            ('location_id.usage', 'in', ['internal', 'expired']),
+            ('location_id.usage', '=', 'expired'),
             ('product_id.product_tmpl_id.classification', '=', 'medicine'),
             ('lot_id.expiration_date', '!=', False),
             ('lot_id.expiration_date', '>=', date_from_dt),
             ('lot_id.expiration_date', '<=', date_to_dt),
-            ('lot_id.expiration_date', '<', today_end),
         ]
-        if branch:
-            domain.append(('location_id', 'child_of', branch.id))
+        if branches:
+            domain.append(('location_id', 'child_of', branches.ids))
 
         quants = Quant.search(domain, order='location_id, product_id, lot_id')
 
         grouped = defaultdict(lambda: {
             'branch': '',
+            'barcode': '',
             'product': '',
             'lot': '',
             'expiry_date': False,
+            'expiry_mm_yyyy': '',
             'raw_qty': 0.0,
             'box_qty': 0.0,
             'unit_qty': 0.0,
@@ -78,12 +81,14 @@ class ReportExpiredMedicinesPerBranch(models.AbstractModel):
             key = (quant.location_id.id, product.id, quant.lot_id.id)
             line = grouped[key]
             line['branch'] = quant.location_id.display_name
+            line['barcode'] = product.barcode or tmpl.barcode or ''
             line['product'] = product.display_name
             line['lot'] = quant.lot_id.name
             line['expiry_date'] = expiry_date
+            line['expiry_mm_yyyy'] = expiry_date.strftime('%m/%Y') if expiry_date else ''
             line['raw_qty'] += quant.quantity
-            line['units_per_box'] = max(int(tmpl.units_per_package or 1), 1)
-            line['box_price'] = tmpl.list_price or product.lst_price or 0.0
+            line['units_per_box'] = max(int(getattr(tmpl, 'units_per_package', 1) or 1), 1)
+            line['box_price'] = self._get_box_price(product, tmpl)
 
         for line in grouped.values():
             self._fill_qty_and_value(line)
@@ -97,20 +102,21 @@ class ReportExpiredMedicinesPerBranch(models.AbstractModel):
         return lines, totals
 
     @api.model
-    def _fill_qty_and_value(self, line):
-        """Convert available quantity into box/unit report quantities.
+    def _get_box_price(self, product, tmpl):
+        # Financial report should value expired stock using purchase/cost data, not sale price.
+        price = product.standard_price or tmpl.standard_price or 0.0
+        units_per_box = max(int(getattr(tmpl, 'units_per_package', 1) or 1), 1)
+        if getattr(tmpl, 'sell_as', False) == 'unit' and units_per_box > 1:
+            return price * units_per_box
+        return price
 
-        In this project, products sold as Unit normally keep stock in units.
-        Products sold as Package normally keep stock in packages. The report stays
-        read-only and only calculates display quantities/value.
-        """
+    @api.model
+    def _fill_qty_and_value(self, line):
         raw_qty = line['raw_qty'] or 0.0
         units_per_box = max(int(line['units_per_box'] or 1), 1)
         box_price = line['box_price'] or 0.0
         unit_price = box_price / units_per_box if units_per_box else box_price
 
-        # If a line has less than one package, keep it as units. Otherwise split into boxes + remainder units.
-        # This is safe for both package and unit stock setups and avoids changing any stock/UoM records.
         if units_per_box > 1:
             box_qty = floor(raw_qty / units_per_box)
             unit_qty = raw_qty - (box_qty * units_per_box)
@@ -120,7 +126,6 @@ class ReportExpiredMedicinesPerBranch(models.AbstractModel):
             box_qty = raw_qty
             unit_qty = 0.0
 
-        # For package-only products where raw_qty is already package quantity, users usually set Units/Package = 1.
         line['box_qty'] = box_qty
         line['unit_qty'] = unit_qty
         line['unit_price'] = unit_price

@@ -16,3 +16,7 @@ from . import pharmacy_expiry_dashboard
 from . import pharmacy_expiry_alert
 
 from . import expired_location
+
+from . import purchase_discount_history
+
+from . import sc1_uc02_shared_barcode

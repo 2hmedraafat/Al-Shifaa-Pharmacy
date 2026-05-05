@@ -360,6 +360,8 @@ class SaleOrderProductSuggestions(models.Model):
                 and s.suggested_product_tmpl_id.id not in existing_template_ids
             )
 
+        suggestions = suggestions.sorted(key=lambda s: (-(int(s.priority or '3')), s.sequence, s.id))
+
         # Remove duplicates while keeping order.
         unique_suggestions = self.env['pharmacy.product.suggestion']
         seen_keys = set()
@@ -381,6 +383,7 @@ class SaleOrderProductSuggestions(models.Model):
                 'base_product_tmpl_id': suggestion.product_tmpl_id.id,
                 'suggested_product_tmpl_id': suggestion.suggested_product_tmpl_id.id,
                 'note': suggestion.note,
+                'priority': suggestion.priority,
             }) for suggestion in unique_suggestions],
         })
 

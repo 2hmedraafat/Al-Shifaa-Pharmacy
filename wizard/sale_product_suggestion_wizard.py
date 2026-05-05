@@ -63,5 +63,7 @@ class SaleProductSuggestionWizardLine(models.TransientModel):
     )
     base_product_tmpl_id = fields.Many2one('product.template', string='Based On', readonly=True)
     suggested_product_tmpl_id = fields.Many2one('product.template', string='Suggested Product', readonly=True)
+    priority = fields.Selection([(str(i), '%s Star%s' % (i, '' if i == 1 else 's')) for i in range(1, 6)], string='Priority', readonly=True)
     list_price = fields.Float(string='Sales Price', related='suggested_product_tmpl_id.list_price', readonly=True)
-    note = fields.Char(string='Note', readonly=True)
+    available_qty = fields.Float(string='Available Qty', related='suggested_product_tmpl_id.qty_available', readonly=True)
+    note = fields.Char(string='Relationship Note', readonly=True)

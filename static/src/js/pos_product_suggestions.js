@@ -50,13 +50,7 @@ function pharmacyOrderProductQty(order, product, excludeLine = null) {
 function pharmacyBuildStockWarning(product, saleableQty) {
     return {
         title: _t("Not Enough Saleable Stock"),
-        body: _t(
-            "You cannot sell more than %(qty)s unit(s) of %(product)s. Expired-location stock is excluded for patient safety.",
-            {
-                qty: saleableQty,
-                product: pharmacyGetProductDisplayName(product),
-            }
-        ),
+        body: "",
     };
 }
 
@@ -179,11 +173,17 @@ patch(ProductScreen.prototype, {
     async addProductToOrder(product) {
         const saleableQty = this._pharmacyGetSaleableQty(product);
 
+        // If the requested product is not saleable, do NOT add it to the order.
+        // First try to show configured alternatives/complementary suggestions so the cashier
+        // can add a saleable substitute. If there are no suggestions, fall back to the safety warning.
         if (saleableQty !== null && saleableQty <= 0) {
-            this.dialog.add(AlertDialog, {
-                title: _t("Expired / Not Saleable"),
-                body: _t("This product has no saleable quantity. Expired-location stock is excluded from POS for patient safety."),
-            });
+            const shownSuggestions = await this._pharmacyShowProductSuggestions(product);
+            if (!shownSuggestions) {
+                this.dialog.add(AlertDialog, {
+                    title: _t("Not Enough Saleable Stock"),
+                    body: "",
+                });
+            }
             return false;
         }
 
@@ -194,13 +194,7 @@ patch(ProductScreen.prototype, {
         if (saleableQty !== null && nextProductQty > saleableQty) {
             this.dialog.add(AlertDialog, {
                 title: _t("Not Enough Saleable Stock"),
-                body: _t(
-                    "You cannot sell more than %(qty)s unit(s) of %(product)s. Expired-location stock is excluded for patient safety.",
-                    {
-                        qty: saleableQty,
-                        product: this._pharmacyGetProductDisplayName(product),
-                    }
-                ),
+                body: "",
             });
             return false;
         }
@@ -276,13 +270,7 @@ patch(ProductScreen.prototype, {
         if (finalQty > saleableQty) {
             this.dialog.add(AlertDialog, {
                 title: _t("Not Enough Saleable Stock"),
-                body: _t(
-                    "You cannot sell more than %(qty)s unit(s) of %(product)s. Expired-location stock is excluded for patient safety.",
-                    {
-                        qty: saleableQty,
-                        product: this._pharmacyGetProductDisplayName(lineProduct),
-                    }
-                ),
+                body: "",
             });
             return true;
         }
@@ -367,23 +355,23 @@ patch(ProductScreen.prototype, {
 
     async _pharmacyShowProductSuggestions(product) {
         if (!product || this._pharmacySuggestionDialogOpen) {
-            return;
+            return false;
         }
 
         const productTemplateId = await this._pharmacyGetProductTemplateId(product);
         if (!productTemplateId) {
-            return;
+            return false;
         }
 
         const suggestionLines = await this.pos.data.searchRead(
             "pharmacy.product.suggestion",
             [["product_tmpl_id", "=", productTemplateId], ["active", "=", true]],
-            ["suggestion_type", "suggested_product_tmpl_id", "note"],
-            { limit: 20 }
+            ["suggestion_type", "suggested_product_tmpl_id", "note", "priority"],
+            { limit: 20, order: "priority desc, sequence asc" }
         );
 
         if (!suggestionLines.length) {
-            return;
+            return false;
         }
 
         const suggestedTemplateIds = suggestionLines
@@ -391,7 +379,7 @@ patch(ProductScreen.prototype, {
             .filter(Boolean);
 
         if (!suggestedTemplateIds.length) {
-            return;
+            return false;
         }
 
         const suggestedProducts = await this.pos.data.searchRead(
@@ -425,6 +413,8 @@ patch(ProductScreen.prototype, {
                     product_id: suggestedProduct.id,
                     product_name: suggestedProduct.display_name,
                     price: suggestedProduct.lst_price,
+                    qty: suggestedProduct.pharmacy_saleable_qty || 0,
+                    priority: line.priority || "3",
                     note: line.note || "",
                     available: !!loadedProduct && saleableProduct,
                     unavailable_reason: !loadedProduct
@@ -435,7 +425,7 @@ patch(ProductScreen.prototype, {
             .filter(Boolean);
 
         if (!suggestions.length) {
-            return;
+            return false;
         }
 
         this._pharmacySuggestionDialogOpen = true;
@@ -447,6 +437,7 @@ patch(ProductScreen.prototype, {
                 this._pharmacySuggestionDialogOpen = false;
             },
         });
+        return true;
     },
 
     async _pharmacyGetProductTemplateId(product) {

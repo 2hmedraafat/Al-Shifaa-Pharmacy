@@ -28,16 +28,20 @@ class PharmacyExpiredMedicinesReportWizard(models.TransientModel):
         required=True,
         default=lambda self: str(fields.Date.context_today(self).month),
     )
-    year = fields.Integer(
+    year = fields.Char(
         string='Year',
         required=True,
-        default=lambda self: fields.Date.context_today(self).year,
+        default=lambda self: str(fields.Date.context_today(self).year),
     )
-    branch_id = fields.Many2one(
+    branch_ids = fields.Many2many(
         'stock.location',
-        string='Branch / Internal or Expired Location',
-        domain="[('usage', 'in', ['internal', 'expired'])]",
-        help='Leave empty to include all internal and expired audit locations.',
+        'pharmacy_expired_report_location_rel',
+        'wizard_id',
+        'location_id',
+        string='Expired Branches / Locations',
+        domain="[('usage', '=', 'expired')]",
+        required=True,
+        help='Select one or more Expired locations only.',
     )
 
     date_from = fields.Date(string='From', compute='_compute_date_range')
@@ -47,10 +51,15 @@ class PharmacyExpiredMedicinesReportWizard(models.TransientModel):
     def _compute_date_range(self):
         for wizard in self:
             if wizard.month and wizard.year:
-                month = int(wizard.month)
-                last_day = monthrange(wizard.year, month)[1]
-                wizard.date_from = date(wizard.year, month, 1)
-                wizard.date_to = date(wizard.year, month, last_day)
+                try:
+                    year = int(wizard.year)
+                    month = int(wizard.month)
+                    last_day = monthrange(year, month)[1]
+                    wizard.date_from = date(year, month, 1)
+                    wizard.date_to = date(year, month, last_day)
+                except (TypeError, ValueError):
+                    wizard.date_from = False
+                    wizard.date_to = False
             else:
                 wizard.date_from = False
                 wizard.date_to = False
@@ -58,20 +67,26 @@ class PharmacyExpiredMedicinesReportWizard(models.TransientModel):
     @api.constrains('year')
     def _check_year(self):
         for wizard in self:
-            if wizard.year < 2000 or wizard.year > 2100:
+            try:
+                year = int(wizard.year)
+            except (TypeError, ValueError):
+                raise ValidationError(_('Please enter a valid year between 2000 and 2100.'))
+            if year < 2000 or year > 2100:
                 raise ValidationError(_('Please enter a valid year between 2000 and 2100.'))
 
     def action_print_pdf(self):
         self.ensure_one()
         if not self.date_from or not self.date_to:
             raise ValidationError(_('Please select a valid month and year.'))
+        if not self.branch_ids:
+            raise ValidationError(_('Please select at least one Expired location.'))
 
         data = {
             'wizard_id': self.id,
             'month': int(self.month),
-            'year': self.year,
+            'year': int(self.year),
             'date_from': fields.Date.to_string(self.date_from),
             'date_to': fields.Date.to_string(self.date_to),
-            'branch_id': self.branch_id.id or False,
+            'branch_ids': self.branch_ids.ids,
         }
         return self.env.ref('pharmacy.action_report_expired_medicines_per_branch').report_action(self, data=data)

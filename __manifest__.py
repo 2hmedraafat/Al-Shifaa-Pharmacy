@@ -25,6 +25,9 @@
         'views/commission_report_views.xml',
         'views/stock_lot_expiry_views.xml',
         'views/stock_location_views.xml',
+        'views/sc1_uc01_views.xml',
+        'data/sc1_uc01_recompute.xml',
+        'views/sc1_uc02_views.xml',
 
         'wizard/bulk_price_update_wizard_views.xml',
         'wizard/scheduled_medicine_sale_confirm_views.xml',
@@ -34,6 +37,7 @@
         'report/product_classification_report.xml',
         'report/product_classification_report_template.xml',
         'report/expired_medicines_report_views.xml',
+        'report/purchase_discount_report.xml',
 
         'views/menus.xml',
         'views/pharmacy_expiry_dashboard_views.xml',

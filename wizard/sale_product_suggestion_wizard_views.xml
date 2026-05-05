@@ -15,6 +15,8 @@
                             <field name="suggestion_type" widget="badge"/>
                             <field name="base_product_tmpl_id"/>
                             <field name="suggested_product_tmpl_id"/>
+                            <field name="priority" widget="priority"/>
+                            <field name="available_qty"/>
                             <field name="list_price"/>
                             <field name="note"/>
                         </list>

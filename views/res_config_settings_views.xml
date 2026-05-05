@@ -7,12 +7,20 @@
         <field name="arch" type="xml">
             <xpath expr="//form" position="inside">
                 <app data-string="Pharmacy" string="Pharmacy" name="pharmacy_expiry_settings">
+                    <block title="Product Suggestions" name="pharmacy_product_suggestions">
+                        <setting string="Max Related Products per List" help="Maximum products allowed in Similar Alternatives and Complementary Products lists. Default: 10.">
+                            <field name="pharmacy_max_product_suggestions"/>
+                        </setting>
+                    </block>
                     <block title="Expiry Alert Thresholds" name="pharmacy_expiry_thresholds">
                         <setting string="Near-Expiry Warning" help="Default: 30 days before expiry.">
                             <field name="pharmacy_expiry_warning_days"/>
                         </setting>
                         <setting string="Critical Expiry Warning" help="Default: 7 days before expiry. Must be less than or equal to Near-Expiry Warning.">
                             <field name="pharmacy_expiry_critical_days"/>
+                        </setting>
+                        <setting string="POS Expiry Indicator" help="Show red/orange clock badges on POS product tiles for critical and near-expiry lots.">
+                            <field name="pharmacy_pos_expiry_indicator_enabled"/>
                         </setting>
                     </block>
                 </app>

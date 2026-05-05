@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- SC1-UC-01: product card discount info + history -->
+    <record id="product_template_form_sc1_uc01_discount_history" model="ir.ui.view">
+        <field name="name">product.template.form.sc1.uc01.discount.history</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Discount History" name="pharmacy_discount_history"
+                      groups="pharmacy.group_pharmacy_manager,pharmacy.group_pharmacy_pharmacist">
+                    <group string="Current Last Purchase Discount" col="2">
+                        <field name="last_purchase_discount_display" readonly="1"/>
+                        <field name="last_purchase_discount_date" readonly="1"/>
+                        <field name="last_purchase_discount_supplier_id" readonly="1"/>
+                        <field name="last_purchase_discount_move_id" readonly="1"/>
+                        <field name="last_purchase_discount_purchase_order_id" readonly="1"/>
+                    </group>
+                    <field name="discount_history_ids" readonly="1" nolabel="1">
+                        <list string="Discount History" create="0" edit="0" delete="0" default_order="invoice_date desc">
+                            <field name="invoice_date"/>
+                            <field name="partner_id"/>
+                            <field name="move_id"/>
+                            <field name="purchase_order_id"/>
+                            <field name="discount"/>
+                            <field name="user_id"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- SC1-UC-01: chronological discount history list -->
+    <record id="view_pharmacy_purchase_discount_history_list" model="ir.ui.view">
+        <field name="name">pharmacy.purchase.discount.history.list</field>
+        <field name="model">pharmacy.purchase.discount.history</field>
+        <field name="arch" type="xml">
+            <list string="Discount History" create="0" edit="0" delete="0" default_order="invoice_date desc">
+                <field name="invoice_date"/>
+                <field name="product_tmpl_id"/>
+                <field name="partner_id"/>
+                <field name="move_id"/>
+                <field name="purchase_order_id"/>
+                <field name="discount"/>
+                <field name="user_id"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_pharmacy_purchase_discount_history_search" model="ir.ui.view">
+        <field name="name">pharmacy.purchase.discount.history.search</field>
+        <field name="model">pharmacy.purchase.discount.history</field>
+        <field name="arch" type="xml">
+            <search string="Discount History">
+                <field name="product_tmpl_id"/>
+                <field name="partner_id"/>
+                <field name="move_id"/>
+                <field name="purchase_order_id"/>
+                <filter string="This Month" name="this_month" date="invoice_date"/>
+                <group expand="0" string="Group By">
+                    <filter string="Supplier" name="group_supplier" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Product" name="group_product" context="{'group_by': 'product_tmpl_id'}"/>
+                    <filter string="Date" name="group_date" context="{'group_by': 'invoice_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_pharmacy_purchase_discount_history" model="ir.actions.act_window">
+        <field name="name">Discount History</field>
+        <field name="res_model">pharmacy.purchase.discount.history</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="context">{'search_default_group_supplier': 1}</field>
+        <field name="groups_id" eval="[(4, ref('pharmacy.group_pharmacy_manager')), (4, ref('pharmacy.group_pharmacy_pharmacist'))]"/>
+    </record>
+
+    <!-- SC1-UC-01: Purchasing Discount Report -->
+    <record id="view_product_template_purchase_discount_report_list" model="ir.ui.view">
+        <field name="name">product.template.purchase.discount.report.list</field>
+        <field name="model">product.template</field>
+        <field name="arch" type="xml">
+            <list string="Purchasing Discount Report" create="0" edit="0" delete="0">
+                <field name="default_code"/>
+                <field name="name"/>
+                <field name="categ_id"/>
+                <field name="last_purchase_discount_display" string="Last Discount"/>
+                <field name="last_purchase_discount_supplier_id"/>
+                <field name="last_purchase_discount_date"/>
+                <field name="last_purchase_discount_move_id"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_product_template_purchase_discount_report_search" model="ir.ui.view">
+        <field name="name">product.template.purchase.discount.report.search</field>
+        <field name="model">product.template</field>
+        <field name="arch" type="xml">
+            <search string="Purchasing Discount Report">
+                <field name="name"/>
+                <field name="default_code"/>
+                <field name="last_purchase_discount_supplier_id"/>
+                <field name="categ_id"/>
+                <filter string="Has Discount History" name="has_discount_history" domain="[('last_purchase_discount_move_id','!=',False)]"/>
+                <filter string="Discount &gt; 0" name="discount_gt_zero" domain="[('last_purchase_discount','&gt;',0)]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Supplier" name="group_supplier" context="{'group_by': 'last_purchase_discount_supplier_id'}"/>
+                    <filter string="Category" name="group_category" context="{'group_by': 'categ_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_product_template_purchase_discount_report" model="ir.actions.act_window">
+        <field name="name">Purchasing Discount Report</field>
+        <field name="res_model">product.template</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="view_id" ref="view_product_template_purchase_discount_report_list"/>
+        <field name="search_view_id" ref="view_product_template_purchase_discount_report_search"/>
+        <field name="domain">[]</field>
+        <field name="groups_id" eval="[(4, ref('pharmacy.group_pharmacy_manager')), (4, ref('pharmacy.group_pharmacy_pharmacist'))]"/>
+    </record>
+
+    <menuitem id="menu_pharmacy_purchase_discount_report"
+              name="Purchasing Discount Report"
+              parent="menu_pharmacy_reports"
+              action="action_product_template_purchase_discount_report"
+              sequence="95"
+              groups="pharmacy.group_pharmacy_manager,pharmacy.group_pharmacy_pharmacist"/>
+
+    <menuitem id="menu_pharmacy_purchase_discount_history"
+              name="Discount History"
+              parent="menu_pharmacy_reports"
+              action="action_pharmacy_purchase_discount_history"
+              sequence="96"
+              groups="pharmacy.group_pharmacy_manager,pharmacy.group_pharmacy_pharmacist"/>
+</odoo>

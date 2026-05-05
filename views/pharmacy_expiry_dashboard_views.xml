@@ -125,4 +125,11 @@
               parent="menu_pharmacy_reports"
               action="action_pharmacy_expiry_dashboard_server"
               sequence="5"/>
+
+    <menuitem id="menu_inventory_expiry_dashboard"
+              name="Expiry Alerts Dashboard"
+              parent="stock.menu_warehouse_report"
+              action="action_pharmacy_expiry_dashboard_server"
+              groups="pharmacy.group_pharmacy_manager,stock.group_stock_manager"
+              sequence="3"/>
 </odoo>

@@ -213,6 +213,7 @@ class StockQuant(models.Model):
                 'location_dest_id': destination.id,
                 'company_id': company.id,
                 'origin': _('Pharmacy Expired Medicines Bulk Transfer'),
+                'pharmacy_expired_transfer_reason': _('Auto-validated bulk transfer from Expired Medicines page.'),
                 'move_ids_without_package': [
                     (0, 0, {
                         'name': '%s / %s' % (quant.product_id.display_name, quant.lot_id.name),
@@ -408,3 +409,167 @@ class SaleOrder(models.Model):
     def action_confirm(self):
         self._pharmacy_check_no_expired_stock_used()
         return super().action_confirm()
+
+
+class StockLocationPharmacySc2Uc01(models.Model):
+    _inherit = 'stock.location'
+
+    def unlink(self):
+        expired_locations = self.filtered(lambda loc: loc.usage == 'expired' or loc.is_expired_location)
+        if expired_locations:
+            raise UserError(_(
+                'Expired locations cannot be deleted while they exist. Archive the location instead, or move/write off its stock first.'
+            ))
+        return super().unlink()
+
+
+class StockPickingPharmacySc2Uc01(models.Model):
+    _inherit = 'stock.picking'
+
+    pharmacy_expired_transfer_reason = fields.Text(
+        string='Expired Transfer Reason',
+        copy=False,
+        help='Mandatory reason/note when transferring stock into an Expired location.',
+    )
+
+    pharmacy_is_destination_expired_location = fields.Boolean(
+        string='Destination Is Expired Location',
+        compute='_compute_pharmacy_is_destination_expired_location',
+    )
+
+    @api.depends('location_dest_id', 'location_dest_id.usage', 'location_dest_id.is_expired_location')
+    def _compute_pharmacy_is_destination_expired_location(self):
+        for picking in self:
+            dest = picking.location_dest_id
+            picking.pharmacy_is_destination_expired_location = bool(
+                dest and (dest.usage == 'expired' or dest.is_expired_location)
+            )
+
+    def _pharmacy_is_expired_or_scrap_location(self, location):
+        return bool(location and (location.usage == 'expired' or location.is_expired_location or location.scrap_location))
+
+    def _pharmacy_check_expired_location_transfer_rules(self):
+        for picking in self:
+            src_expired = picking.location_id.usage == 'expired' or picking.location_id.is_expired_location
+            dest_expired = picking.location_dest_id.usage == 'expired' or picking.location_dest_id.is_expired_location
+
+            if dest_expired and not (picking.pharmacy_expired_transfer_reason or '').strip():
+                raise UserError(_(
+                    'Expired Transfer Reason is required before moving stock into an Expired location.'
+                ))
+
+            if src_expired and not self._pharmacy_is_expired_or_scrap_location(picking.location_dest_id):
+                raise UserError(_(
+                    'Stock cannot be transferred out of an Expired location to a normal Internal or Customer location. '
+                    'You can only transfer it to another Expired location or to a Scrap location.'
+                ))
+
+    def _pharmacy_get_first_incoming_move_invalid_expiry(self):
+        """Return first receipt move that needs expiry-date correction.
+
+        This covers both cases from the Detailed Operations popup:
+        1) Lot/Serial entered but Expiration Date is empty.
+        2) Expiration Date is already expired.
+
+        Returning the move lets button_validate reopen the same details popup
+        instead of forcing the user to delete the receipt line and create it again.
+        """
+        StockMoveLine = self.env['stock.move.line']
+        qty_field = 'quantity' if 'quantity' in StockMoveLine._fields else 'qty_done'
+        today = fields.Date.context_today(self)
+
+        def _line_expiry_date(line):
+            expiry_value = False
+            if 'expiration_date' in line._fields:
+                expiry_value = line.expiration_date
+            if not expiry_value and line.lot_id and 'expiration_date' in line.lot_id._fields:
+                expiry_value = line.lot_id.expiration_date
+            if not expiry_value:
+                return False
+            expiry_dt = fields.Datetime.to_datetime(expiry_value)
+            return expiry_dt.date() if expiry_dt else fields.Date.to_date(expiry_value)
+
+        for picking in self:
+            if picking.picking_type_code != 'incoming':
+                continue
+
+            for move in picking.move_ids.exists():
+                product = move.product_id
+                if not product or product.tracking == 'none':
+                    continue
+
+                move_lines = move.move_line_ids.exists()
+                if not move_lines:
+                    continue
+
+                for line in move_lines:
+                    qty = 0.0
+                    if qty_field in line._fields:
+                        qty = line[qty_field] or 0.0
+                    elif 'qty_done' in line._fields:
+                        qty = line.qty_done or 0.0
+
+                    has_lot = bool(line.lot_id) or bool(getattr(line, 'lot_name', False))
+                    if qty <= 0 and not has_lot:
+                        continue
+
+                    expiry_date = _line_expiry_date(line)
+
+                    # Lot exists but no expiry: reopen popup so user can fill it.
+                    if has_lot and not expiry_date:
+                        return move
+
+                    # Existing receipt line has an already-expired month/year:
+                    # reopen popup instead of leaving the user stuck at Validate.
+                    if expiry_date and expiry_date < today:
+                        return move
+
+        return self.env['stock.move']
+
+    def _pharmacy_get_first_incoming_move_missing_expiry(self):
+        # Backward-compatible alias used by older helper calls.
+        return self._pharmacy_get_first_incoming_move_invalid_expiry()
+
+    def _pharmacy_open_missing_expiry_move_action(self, move):
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Correct Expiration Date'),
+            'res_model': 'stock.move',
+            'res_id': move.id,
+            'view_mode': 'form',
+            'target': 'new',
+            'context': dict(
+                self.env.context,
+                pharmacy_missing_expiry_warning=True,
+            ),
+        }
+
+    def _pharmacy_check_incoming_lot_expiry_required(self):
+        missing_move = self._pharmacy_get_first_incoming_move_missing_expiry()
+        if missing_move:
+            raise UserError(_('Expiration Date is required for received lot/serial numbers.'))
+
+    def action_confirm(self):
+        self._pharmacy_check_expired_location_transfer_rules()
+        return super().action_confirm()
+
+    def button_validate(self):
+        self._pharmacy_check_expired_location_transfer_rules()
+        missing_move = self._pharmacy_get_first_incoming_move_missing_expiry()
+        if missing_move:
+            return self._pharmacy_open_missing_expiry_move_action(missing_move)
+        result = super().button_validate()
+        for picking in self.filtered(lambda p: p.state == 'done' and (
+            p.location_id.usage == 'expired' or p.location_dest_id.usage == 'expired'
+            or p.location_id.is_expired_location or p.location_dest_id.is_expired_location
+        )):
+            direction = _('to Expired location') if (picking.location_dest_id.usage == 'expired' or picking.location_dest_id.is_expired_location) else _('from Expired location')
+            picking.message_post(body=_(
+                'Expired stock movement validated %(direction)s by %(user)s.<br/>Source: %(src)s<br/>Destination: %(dest)s<br/>Reason: %(reason)s',
+                direction=direction,
+                user=self.env.user.display_name,
+                src=picking.location_id.display_name,
+                dest=picking.location_dest_id.display_name,
+                reason=picking.pharmacy_expired_transfer_reason or '-',
+            ))
+        return result

@@ -29,15 +29,15 @@ patch(ProductScreen.prototype, {
         const allProducts = await this.pos.data.searchRead(
             "product.product",
             [["barcode", "=", barcode], ["available_in_pos", "=", true]],
-            ["id", "display_name", "barcode", "lst_price", "is_scheduled_medicine", "pharmacy_saleable_qty"],
+            ["id", "display_name", "default_code", "barcode", "lst_price", "uom_id", "is_scheduled_medicine", "pharmacy_saleable_qty"],
             { limit: 20 }
         );
         const products = allProducts.filter((product) => this._pharmacyHasSaleableQty(product));
 
         if (allProducts.length && !products.length) {
             this.dialog.add(AlertDialog, {
-                title: _t("Expired / Not Saleable"),
-                body: _t("This barcode belongs to a product that has no saleable quantity. Expired-location stock is excluded for patient safety."),
+                title: _t("Not Enough Saleable Stock"),
+                body: "",
             });
             return false;
         }
@@ -63,8 +63,8 @@ patch(ProductScreen.prototype, {
         if (product) {
             if (!this._pharmacyHasSaleableQty(product)) {
                 this.dialog.add(AlertDialog, {
-                    title: _t("Expired / Not Saleable"),
-                    body: _t("This product has no saleable quantity. Expired-location stock is excluded for patient safety."),
+                    title: _t("Not Enough Saleable Stock"),
+                    body: "",
                 });
                 return false;
             }

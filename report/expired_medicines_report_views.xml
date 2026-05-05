@@ -21,7 +21,7 @@
         <field name="report_name">pharmacy.report_expired_medicines_per_branch</field>
         <field name="report_file">pharmacy.report_expired_medicines_per_branch</field>
         <field name="paperformat_id" ref="pharmacy.paperformat_expired_medicines_landscape"/>
-        <field name="print_report_name">'Expired Medicines Report - %s-%s' % (object.month, object.year)</field>
+        <field name="print_report_name">'Expired_Medicines_%s_%s-%s' % ('Branches', object.month, object.year)</field>
         <field name="binding_model_id" eval="False"/>
     </record>
 
@@ -29,56 +29,16 @@
         <t t-call="web.html_container">
             <t t-call="web.external_layout">
                 <style>
-                    .pharmacy-expired-report {
-                        direction: rtl;
-                        text-align: right;
-                        font-family: 'DejaVu Sans', 'Arial', sans-serif;
-                        font-size: 12px;
-                    }
-                    .pharmacy-expired-report .ltr {
-                        direction: ltr;
-                        unicode-bidi: embed;
-                        text-align: left;
-                    }
-                    .pharmacy-expired-report h2 {
-                        margin: 0 0 8px 0;
-                        font-weight: 700;
-                    }
-                    .pharmacy-expired-report .meta-table,
-                    .pharmacy-expired-report .lines-table {
-                        width: 100%;
-                        border-collapse: collapse;
-                    }
-                    .pharmacy-expired-report .meta-table td {
-                        border: 1px solid #ddd;
-                        padding: 6px 8px;
-                    }
-                    .pharmacy-expired-report .lines-table th,
-                    .pharmacy-expired-report .lines-table td {
-                        border: 1px solid #999;
-                        padding: 5px 6px;
-                        vertical-align: middle;
-                    }
-                    .pharmacy-expired-report .lines-table th {
-                        background: #eeeeee;
-                        font-weight: 700;
-                    }
-                    .pharmacy-expired-report .num {
-                        direction: ltr;
-                        unicode-bidi: embed;
-                        text-align: right;
-                        white-space: nowrap;
-                    }
-                    .pharmacy-expired-report .totals-row td {
-                        font-weight: 700;
-                        background: #f4f4f4;
-                    }
-                    .pharmacy-expired-report .empty {
-                        padding: 18px;
-                        border: 1px solid #999;
-                        text-align: center;
-                        font-weight: 700;
-                    }
+                    .pharmacy-expired-report { direction: rtl; text-align: right; font-family: 'DejaVu Sans', 'Arial', sans-serif; font-size: 12px; }
+                    .pharmacy-expired-report .ltr { direction: ltr; unicode-bidi: embed; text-align: left; }
+                    .pharmacy-expired-report h2 { margin: 0 0 8px 0; font-weight: 700; }
+                    .pharmacy-expired-report .meta-table, .pharmacy-expired-report .lines-table { width: 100%; border-collapse: collapse; }
+                    .pharmacy-expired-report .meta-table td { border: 1px solid #ddd; padding: 6px 8px; }
+                    .pharmacy-expired-report .lines-table th, .pharmacy-expired-report .lines-table td { border: 1px solid #999; padding: 5px 6px; vertical-align: middle; }
+                    .pharmacy-expired-report .lines-table th { background: #eeeeee; font-weight: 700; }
+                    .pharmacy-expired-report .num { direction: ltr; unicode-bidi: embed; text-align: right; white-space: nowrap; }
+                    .pharmacy-expired-report .totals-row td { font-weight: 700; background: #f4f4f4; }
+                    .pharmacy-expired-report .empty { padding: 18px; border: 1px solid #999; text-align: center; font-weight: 700; }
                 </style>
 
                 <div class="page pharmacy-expired-report">
@@ -89,7 +49,10 @@
                         <tr>
                             <td><strong>الشركة:</strong> <span t-esc="company.name"/></td>
                             <td><strong>الفترة:</strong> <span class="ltr" t-esc="date_from"/> إلى <span class="ltr" t-esc="date_to"/></td>
-                            <td><strong>الفرع:</strong> <span t-esc="branch.display_name if branch else 'كل الفروع الداخلية'"/></td>
+                            <td><strong>الفروع:</strong> <span t-esc="branch_names"/></td>
+                        </tr>
+                        <tr>
+                            <td colspan="3"><strong>تاريخ الإنشاء:</strong> <span class="ltr" t-esc="generated_at.strftime('%Y-%m-%d %H:%M:%S') if generated_at else ''"/></td>
                         </tr>
                     </table>
 
@@ -97,23 +60,25 @@
                         <table class="lines-table">
                             <thead>
                                 <tr>
-                                    <th style="width: 14%;">الفرع</th>
-                                    <th style="width: 23%;">الصنف</th>
-                                    <th style="width: 12%;">رقم التشغيلة</th>
-                                    <th style="width: 10%;">تاريخ الانتهاء</th>
+                                    <th style="width: 13%;">الفرع</th>
+                                    <th style="width: 10%;">الباركود</th>
+                                    <th style="width: 20%;">الصنف</th>
+                                    <th style="width: 10%;">رقم التشغيلة</th>
+                                    <th style="width: 9%;">تاريخ الانتهاء</th>
                                     <th style="width: 8%;">عدد العلب</th>
                                     <th style="width: 8%;">عدد الوحدات</th>
                                     <th style="width: 8%;">وحدة/علبة</th>
-                                    <th style="width: 8%;">سعر العلبة</th>
-                                    <th style="width: 9%;">الإجمالي</th>
+                                    <th style="width: 7%;">سعر العلبة</th>
+                                    <th style="width: 7%;">الإجمالي</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr t-foreach="lines" t-as="line">
                                     <td><span t-esc="line['branch']"/></td>
+                                    <td class="ltr"><span t-esc="line['barcode']"/></td>
                                     <td><span t-esc="line['product']"/></td>
                                     <td class="ltr"><span t-esc="line['lot']"/></td>
-                                    <td class="num"><span t-esc="line['expiry_date']"/></td>
+                                    <td class="num"><span t-esc="line['expiry_mm_yyyy']"/></td>
                                     <td class="num"><span t-esc="'%.2f' % line['box_qty']"/></td>
                                     <td class="num"><span t-esc="'%.2f' % line['unit_qty']"/></td>
                                     <td class="num"><span t-esc="line['units_per_box']"/></td>
@@ -121,7 +86,7 @@
                                     <td class="num"><span t-esc="'%.2f' % line['total_value']"/></td>
                                 </tr>
                                 <tr class="totals-row">
-                                    <td colspan="4">الإجمالي</td>
+                                    <td colspan="5">الإجمالي</td>
                                     <td class="num"><span t-esc="'%.2f' % totals['box_qty']"/></td>
                                     <td class="num"><span t-esc="'%.2f' % totals['unit_qty']"/></td>
                                     <td></td>

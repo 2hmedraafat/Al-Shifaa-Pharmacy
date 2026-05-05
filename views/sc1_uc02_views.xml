@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- SC1-UC-02: Pharmacy setting to control shared barcodes -->
+    <record id="res_config_settings_view_form_sc1_uc02_shared_barcode" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.sc1.uc02.shared.barcode</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="pharmacy.res_config_settings_view_form_pharmacy_expiry"/>
+        <field name="arch" type="xml">
+            <xpath expr="//app[@name='pharmacy_expiry_settings']" position="inside">
+                <block title="Barcode Settings" name="pharmacy_barcode_settings">
+                    <setting string="Allow Shared Barcodes"
+                             help="When enabled, the same barcode can be used by more than one product. POS will show a product selection dialog on scan.">
+                        <field name="pharmacy_allow_shared_barcodes"/>
+                    </setting>
+                </block>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- SC1-UC-02: visual badge next to the barcode on product form -->
+    <record id="product_template_form_sc1_uc02_shared_barcode_badge" model="ir.ui.view">
+        <field name="name">product.template.form.sc1.uc02.shared.barcode.badge</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_only_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='barcode']" position="after">
+                <field name="pharmacy_is_shared_barcode" invisible="1"/>
+                <field name="pharmacy_shared_barcode_count" invisible="1"/>
+                <field name="pharmacy_shared_barcode_product_names" invisible="1"/>
+                <div class="alert alert-warning py-1 px-2 mt-1" role="status" invisible="not pharmacy_is_shared_barcode">
+                    <strong>Shared Barcode</strong>
+                    <span> — used by </span>
+                    <field name="pharmacy_shared_barcode_count" nolabel="1" class="oe_inline"/>
+                    <span> products</span>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- SC1-UC-02: Shared Barcodes report/list -->
+    <record id="view_product_template_shared_barcode_tree" model="ir.ui.view">
+        <field name="name">product.template.shared.barcode.list</field>
+        <field name="model">product.template</field>
+        <field name="arch" type="xml">
+            <list string="Shared Barcodes" create="0" delete="0">
+                <field name="barcode" string="Barcode Value"/>
+                <field name="name" string="Product"/>
+                <field name="default_code" string="Internal Reference"/>
+                <field name="pharmacy_shared_barcode_count" string="Used By"/>
+                <field name="pharmacy_shared_barcode_product_names" string="Products Sharing It"/>
+                <field name="pharmacy_shared_barcode_status" widget="badge"/>
+                <button name="action_pharmacy_shared_barcode_keep" type="object" string="Keep" class="btn-secondary"/>
+                <button name="action_pharmacy_shared_barcode_resolve" type="object" string="Resolve" class="btn-primary"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_product_template_shared_barcode_search" model="ir.ui.view">
+        <field name="name">product.template.shared.barcode.search</field>
+        <field name="model">product.template</field>
+        <field name="arch" type="xml">
+            <search string="Shared Barcodes">
+                <field name="barcode"/>
+                <field name="name"/>
+                <field name="default_code"/>
+                <filter string="Keep" name="status_keep" domain="[('pharmacy_shared_barcode_status','=','keep')]"/>
+                <filter string="Resolved" name="status_resolved" domain="[('pharmacy_shared_barcode_status','=','resolved')]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Status" name="group_status" context="{'group_by': 'pharmacy_shared_barcode_status'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_pharmacy_shared_barcodes_report" model="ir.actions.act_window">
+        <field name="name">Shared Barcodes</field>
+        <field name="res_model">product.template</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="view_product_template_shared_barcode_tree"/>
+        <field name="search_view_id" ref="view_product_template_shared_barcode_search"/>
+        <field name="domain">[('pharmacy_is_shared_barcode','=',True)]</field>
+        <field name="context">{}</field>
+    </record>
+
+    <menuitem id="menu_pharmacy_shared_barcodes_report"
+              name="Shared Barcodes"
+              parent="pharmacy.menu_pharmacy_reports"
+              action="action_pharmacy_shared_barcodes_report"
+              groups="pharmacy.group_pharmacy_manager,pharmacy.group_pharmacy_pharmacist"
+              sequence="18"/>
+</odoo>

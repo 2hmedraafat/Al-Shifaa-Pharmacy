@@ -10,4 +10,31 @@
             </xpath>
         </field>
     </record>
+
+
+    <record id="view_location_form_inherit_pharmacy_expired_badge" model="ir.ui.view">
+        <field name="name">stock.location.form.pharmacy.expired.badge</field>
+        <field name="model">stock.location</field>
+        <field name="inherit_id" ref="stock.view_location_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='usage']" position="after">
+                <div class="alert alert-danger mb-2" role="status" invisible="usage != 'expired'">
+                    <strong>Expired Location</strong> — Stock here is quarantined and excluded from POS/Sales saleable quantities.
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_picking_form_inherit_pharmacy_expired_reason" model="ir.ui.view">
+        <field name="name">stock.picking.form.pharmacy.expired.reason</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='location_dest_id']" position="after">
+                <field name="pharmacy_is_destination_expired_location" invisible="1"/>
+                <field name="pharmacy_expired_transfer_reason" placeholder="Required only when destination is an Expired location." invisible="not pharmacy_is_destination_expired_location"/>
+            </xpath>
+        </field>
+    </record>
+
 </odoo>

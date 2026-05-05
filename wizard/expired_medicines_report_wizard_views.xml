@@ -8,8 +8,11 @@
                 <group>
                     <group>
                         <field name="month"/>
-                        <field name="year"/>
-                        <field name="branch_id" options="{'no_create': True, 'no_open': True}"/>
+                        <field name="year" options="{'format': False}"/>
+                        <field name="branch_ids"
+                               widget="many2many_tags"
+                               options="{'no_create': True, 'no_open': True}"
+                               placeholder="Select Expired location(s) only"/>
                     </group>
                     <group>
                         <field name="date_from" readonly="1"/>
@@ -30,5 +33,4 @@
         <field name="view_mode">form</field>
         <field name="target">new</field>
     </record>
-
 </odoo>

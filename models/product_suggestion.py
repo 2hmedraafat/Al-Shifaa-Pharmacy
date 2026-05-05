@@ -32,7 +32,14 @@ class PharmacyProductSuggestion(models.Model):
         required=True,
         default='complementary',
     )
-    note = fields.Char(string='Note')
+    note = fields.Char(string='Relationship Note')
+    priority = fields.Selection(
+        [(str(i), '%s Star%s' % (i, '' if i == 1 else 's')) for i in range(1, 6)],
+        string='Priority',
+        default='3',
+        required=True,
+        help='Priority 1-5 used to sort suggestions. 5 is highest.',
+    )
     list_price = fields.Float(
         string='Sales Price',
         related='suggested_product_tmpl_id.list_price',
@@ -52,6 +59,48 @@ class PharmacyProductSuggestion(models.Model):
         for rec in self:
             if rec.product_tmpl_id and rec.suggested_product_tmpl_id and rec.product_tmpl_id == rec.suggested_product_tmpl_id:
                 raise ValidationError(_('The suggested product cannot be the same as the base product.'))
+
+    @api.constrains('product_tmpl_id', 'suggestion_type', 'active')
+    def _check_suggestion_limit(self):
+        limit = int(self.env['ir.config_parameter'].sudo().get_param('pharmacy.max_product_suggestions', 10) or 10)
+        if limit <= 0:
+            return
+        for rec in self.filtered(lambda r: r.product_tmpl_id and r.suggestion_type and r.active):
+            count = self.search_count([
+                ('product_tmpl_id', '=', rec.product_tmpl_id.id),
+                ('suggestion_type', '=', rec.suggestion_type),
+                ('active', '=', True),
+            ])
+            if count > limit:
+                raise ValidationError(_(
+                    'You cannot add more than %(limit)s %(stype)s suggestion(s) for %(product)s.'
+                ) % {
+                    'limit': limit,
+                    'stype': rec.suggestion_type,
+                    'product': rec.product_tmpl_id.display_name,
+                })
+
+    def action_make_reciprocal(self):
+        for rec in self:
+            if not rec.product_tmpl_id or not rec.suggested_product_tmpl_id:
+                continue
+            reverse = self.search([
+                ('product_tmpl_id', '=', rec.suggested_product_tmpl_id.id),
+                ('suggested_product_tmpl_id', '=', rec.product_tmpl_id.id),
+                ('suggestion_type', '=', rec.suggestion_type),
+            ], limit=1)
+            if reverse:
+                if not reverse.active:
+                    reverse.active = True
+                continue
+            self.create({
+                'product_tmpl_id': rec.suggested_product_tmpl_id.id,
+                'suggested_product_tmpl_id': rec.product_tmpl_id.id,
+                'suggestion_type': rec.suggestion_type,
+                'note': rec.note,
+                'priority': rec.priority,
+            })
+        return True
 
 
 class ProductTemplate(models.Model):

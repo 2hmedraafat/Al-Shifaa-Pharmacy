@@ -14,9 +14,24 @@
                         || props.product?.raw?.pharmacy_nearest_expiry_date
                         || props.product?._raw?.pharmacy_nearest_expiry_date
                         || props.product?.data?.pharmacy_nearest_expiry_date"/>
-            <div t-if="['expired', 'critical', 'near'].includes(expiryState)"
+            <t t-set="nearestLot"
+               t-value="props.product?.pharmacy_nearest_expiry_lot_name
+                        || props.product?.raw?.pharmacy_nearest_expiry_lot_name
+                        || props.product?._raw?.pharmacy_nearest_expiry_lot_name
+                        || props.product?.data?.pharmacy_nearest_expiry_lot_name"/>
+            <t t-set="daysRemaining"
+               t-value="props.product?.pharmacy_expiry_days_remaining
+                        ?? props.product?.raw?.pharmacy_expiry_days_remaining
+                        ?? props.product?._raw?.pharmacy_expiry_days_remaining
+                        ?? props.product?.data?.pharmacy_expiry_days_remaining"/>
+            <t t-set="indicatorEnabled"
+               t-value="props.product?.pharmacy_pos_expiry_indicator_enabled
+                        ?? props.product?.raw?.pharmacy_pos_expiry_indicator_enabled
+                        ?? props.product?._raw?.pharmacy_pos_expiry_indicator_enabled
+                        ?? props.product?.data?.pharmacy_pos_expiry_indicator_enabled"/>
+            <div t-if="indicatorEnabled !== false &amp;&amp; ['expired', 'critical', 'near'].includes(expiryState)"
                  t-att-class="'pharmacy-pos-expiry-badge pharmacy-pos-expiry-badge-' + expiryState"
-                 t-att-title="nearestExpiry ? ('Nearest expiry: ' + nearestExpiry) : 'Expiry warning'">
+                 t-att-title="daysRemaining !== undefined &amp;&amp; nearestLot ? ('Warning: expires in ' + daysRemaining + ' days (Lot: ' + nearestLot + ')') : (nearestExpiry ? ('Nearest expiry: ' + nearestExpiry) : 'Expiry warning')">
                 <span class="pharmacy-pos-expiry-icon">⏰</span>
                 <span t-if="expiryState === 'expired'">Expired</span>
                 <span t-elif="expiryState === 'critical'">Critical</span>

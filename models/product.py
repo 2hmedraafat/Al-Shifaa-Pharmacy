@@ -916,6 +916,21 @@ class ProductProduct(models.Model):
         compute='_compute_pharmacy_expiry_alert',
         store=False,
     )
+    pharmacy_nearest_expiry_lot_name = fields.Char(
+        string='Nearest Expiry Lot',
+        compute='_compute_pharmacy_expiry_alert',
+        store=False,
+    )
+    pharmacy_expiry_days_remaining = fields.Integer(
+        string='Expiry Days Remaining',
+        compute='_compute_pharmacy_expiry_alert',
+        store=False,
+    )
+    pharmacy_pos_expiry_indicator_enabled = fields.Boolean(
+        string='POS Expiry Indicator Enabled',
+        compute='_compute_pharmacy_pos_expiry_indicator_enabled',
+        store=False,
+    )
 
     def _pharmacy_get_expiry_thresholds(self):
         ICP = self.env['ir.config_parameter'].sudo()
@@ -928,6 +943,14 @@ class ProductProduct(models.Model):
         if critical_days > warning_days:
             critical_days = warning_days
         return warning_days, critical_days
+
+    def _compute_pharmacy_pos_expiry_indicator_enabled(self):
+        """Expose the POS expiry indicator setting on product.product."""
+        enabled = self.env['ir.config_parameter'].sudo().get_param(
+            'pharmacy.pos_expiry_indicator_enabled', '1'
+        ) not in ('0', 'False', 'false', False, None)
+        for product in self:
+            product.pharmacy_pos_expiry_indicator_enabled = enabled
 
     @api.model
     def _load_pos_data_fields(self, config_id):
@@ -944,6 +967,9 @@ class ProductProduct(models.Model):
         for field_name in [
             'pharmacy_expiry_alert_state',
             'pharmacy_nearest_expiry_date',
+            'pharmacy_nearest_expiry_lot_name',
+            'pharmacy_expiry_days_remaining',
+            'pharmacy_pos_expiry_indicator_enabled',
             'is_scheduled_medicine',
             'product_tmpl_id',
             'barcode',
@@ -971,6 +997,8 @@ class ProductProduct(models.Model):
 
         for product in self:
             product.pharmacy_nearest_expiry_date = False
+            product.pharmacy_nearest_expiry_lot_name = False
+            product.pharmacy_expiry_days_remaining = 0
             product.pharmacy_expiry_alert_state = 'normal'
 
             lot = self.env['stock.lot'].sudo().search(
@@ -983,6 +1011,8 @@ class ProductProduct(models.Model):
 
             expiry_date = fields.Date.to_date(lot.expiration_date)
             product.pharmacy_nearest_expiry_date = expiry_date
+            product.pharmacy_nearest_expiry_lot_name = lot.name or ''
+            product.pharmacy_expiry_days_remaining = (expiry_date - today).days
 
             if expiry_date < today:
                 product.pharmacy_expiry_alert_state = 'expired'
