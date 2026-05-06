@@ -14,6 +14,7 @@
         'data/expiry_alert_cron.xml',
         'data/expired_location_data.xml',
 
+
         'views/product_template_views.xml',
         'views/res_config_settings_views.xml',
         'views/pharmacy_prescription_views.xml',
@@ -28,6 +29,7 @@
         'views/sc1_uc01_views.xml',
         'data/sc1_uc01_recompute.xml',
         'views/sc1_uc02_views.xml',
+        'views/pharmacy_expiry_dashboard_views.xml',
 
         'wizard/bulk_price_update_wizard_views.xml',
         'wizard/scheduled_medicine_sale_confirm_views.xml',
@@ -40,7 +42,7 @@
         'report/purchase_discount_report.xml',
 
         'views/menus.xml',
-        'views/pharmacy_expiry_dashboard_views.xml',
+      
     ],
     'assets': {
         'web.assets_backend': [

@@ -280,18 +280,25 @@ class ProductProduct(models.Model):
     _inherit = 'product.product'
 
     pharmacy_saleable_qty = fields.Float(
-        string='Saleable Qty (Excluding Expired Locations)',
+        string='Saleable Qty (Excluding Expired Stock)',
         compute='_compute_pharmacy_saleable_qty',
         search='_search_pharmacy_saleable_qty',
         digits='Product Unit of Measure',
-        help='Available quantity in normal internal locations only. Expired locations are always excluded.',
+        help='Available quantity in normal internal locations only. Expired locations and expired lots are always excluded.',
     )
 
     def _pharmacy_saleable_quant_domain(self):
+        # Patient-safety rule for POS/Sales:
+        # saleable stock = normal internal locations only + non-expired lots only.
+        # This prevents products with expired lots still sitting in WH/Stock from being sold.
+        today = fields.Date.context_today(self)
         return [
             ('product_id', 'in', self.ids),
             ('location_id.usage', '=', 'internal'),
             ('location_id.is_expired_location', '=', False),
+            '|',
+                ('lot_id', '=', False),
+                ('lot_id.expiration_date', '>=', today),
         ]
 
     def _pharmacy_get_saleable_qty_map(self):
@@ -360,11 +367,11 @@ class ProductTemplate(models.Model):
     _inherit = 'product.template'
 
     pharmacy_saleable_qty = fields.Float(
-        string='Saleable Qty (Excluding Expired Locations)',
+        string='Saleable Qty (Excluding Expired Stock)',
         compute='_compute_pharmacy_template_saleable_qty',
         search='_search_pharmacy_template_saleable_qty',
         digits='Product Unit of Measure',
-        help='Total saleable quantity of all variants excluding Expired locations.',
+        help='Total saleable quantity of all variants excluding Expired locations and expired lots.',
     )
 
     @api.depends('product_variant_ids.pharmacy_saleable_qty')
@@ -397,7 +404,7 @@ class SaleOrder(models.Model):
                 if requested_qty > saleable_qty:
                     errors.append(_(
                         '%(product)s: requested %(requested).2f %(uom)s, saleable %(saleable).2f %(uom)s. '
-                        'Expired-location stock is excluded for patient safety.',
+                        'Expired stock is excluded for patient safety.',
                         product=product.display_name,
                         requested=requested_qty,
                         saleable=saleable_qty,

@@ -20,6 +20,21 @@ function pharmacyGetSaleableQty(product) {
     return Number.isFinite(qty) ? qty : null;
 }
 
+function pharmacyIsExpiredProduct(product) {
+    const state = product?.pharmacy_expiry_alert_state
+        || product?.raw?.pharmacy_expiry_alert_state
+        || product?._raw?.pharmacy_expiry_alert_state
+        || product?.data?.pharmacy_expiry_alert_state;
+    return state === "expired";
+}
+
+function pharmacyBuildExpiredWarning(product) {
+    return {
+        title: _t("Expired / Not Saleable"),
+        body: _t("This product is expired and cannot be sold."),
+    };
+}
+
 function pharmacyGetProductId(product) {
     return product?.id ?? product?.raw?.id ?? false;
 }
@@ -89,6 +104,10 @@ patch(PosStore.prototype, {
             : vals?.product_id;
 
         if (product) {
+            if (pharmacyIsExpiredProduct(product)) {
+                this.dialog.add(AlertDialog, pharmacyBuildExpiredWarning(product));
+                return false;
+            }
             const saleableQty = await this._pharmacyEnsureSaleableQty(product);
             const existingQty = pharmacyOrderProductQty(order || this.get_order?.(), product);
             const requestedQty = Number(vals?.qty ?? opts?.quantity ?? 1);
@@ -302,8 +321,19 @@ patch(ProductScreen.prototype, {
     },
 
     _pharmacyHasSaleableQty(product) {
+        if (this._pharmacyIsExpiredProduct(product)) {
+            return false;
+        }
         const qty = product?.pharmacy_saleable_qty ?? product?.raw?.pharmacy_saleable_qty;
         return qty === undefined || qty === null || Number(qty) > 0;
+    },
+
+    _pharmacyIsExpiredProduct(product) {
+        return pharmacyIsExpiredProduct(product);
+    },
+
+    _pharmacyBuildExpiredWarning(product) {
+        return pharmacyBuildExpiredWarning(product);
     },
 
     _pharmacyGetSaleableQty(product) {
